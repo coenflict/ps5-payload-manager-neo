@@ -485,7 +485,9 @@ static void decide(const SlotMeta *meta, const Prefs *p, const RepoPayload *cata
     int have_up = 0, have_cat = 0;
     if (have_repo && spec.pattern[0]) {
         UpstreamRelease release; int from_cache = 0; char error[96] = "";
-        int rc = upstream_check(&spec, p->prerelease, max_age, UPSTREAM_CACHE_DIR, &release, &from_cache, error, sizeof(error));
+        /* Someone already running a prerelease follows newer ones. */
+        int prerelease = p->prerelease || upstream_version_is_prerelease(meta->version);
+        int rc = upstream_check(&spec, prerelease, max_age, UPSTREAM_CACHE_DIR, &release, &from_cache, error, sizeof(error));
         if (rc == UPSTREAM_OK) {
             if (!release.sha256[0] && !p->unverified)
                 snprintf(d->note, sizeof(d->note), "Upstream %s publishes no checksum", release.tag);

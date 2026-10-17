@@ -125,6 +125,8 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-updater-') as temp:
     binary = build / 'updater_tests'
     subprocess.run(flags + objects + ['tests/updater_driver.c', '-Wl,-dead_strip' if sys.platform == 'darwin' else '-Wl,--gc-sections', '-lcurl', '-o', str(binary)], cwd=ROOT, check=True)
 
+    check(b'PLDMGR_CHANNEL:' + CHANNEL.encode() + b'\0' in binary.read_bytes(), 'channel marker survives --gc-sections')
+
     def run(*args, env=None, expect=0):
         result = subprocess.run([str(binary), *map(str, args)], env={**os.environ, **(env or {})},
                                 capture_output=True, text=True, timeout=120)
@@ -198,6 +200,15 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-updater-') as temp:
     check(run('select', sample, 'tool-*.elf', '', 'pre').stdout.split()[1] == 'v2.1-beta')
     check(run('select', sample, 'tool-*.elf', 'debug').stdout.split()[:3] == ['0', 'v1.10', 'tool-1.10-debug.elf'])
     check(run('select', sample, 'other-*.elf').stdout.split()[0] == '1')
+    releases.insert(0, {'tag_name': 'v1.11-beta2', 'draft': False, 'prerelease': False,
+                        'assets': [{'name': 'tool-1.11-beta2.elf', 'browser_download_url': BASE + '/e', 'digest': digest}]})
+    sample.write_text(json.dumps(releases))
+    check(run('select', sample, 'tool-*.elf').stdout.split()[1] == 'v1.10', 'unflagged beta tag is a prerelease')
+    check(run('select', sample, 'tool-*.elf', '', 'pre').stdout.split()[1] == 'v2.1-beta')
+    for version, expected in [('1.7-beta5fix1', True), ('2.5B', False), ('v1.0-rc1', True), ('1.16-ng-stable', False),
+                              ('v0.9.0', False), ('nightly-20261001', True), ('38108724867', False)]:
+        result = run('prerelease', version).stdout.strip()
+        check(result == ('1' if expected else '0'), (version, result))
     sample.write_text('{"message":"Not Found"}')
     check(run('select', sample, '*').stdout.split()[0] == '-1')
 
@@ -205,7 +216,7 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-updater-') as temp:
     K = {v: elf(f'kstuff {v}'.encode()) for v in ['v1.11', 'v1.12', 'v1.13', 'v1.14', 'v2.0', 'v2.1']}
     SMP16, SMP17 = elf(b'smp 1.6'), elf(b'smp 1.7')
     LOCAL = elf(b'local upload')
-    api = '/gh/repos/EchoStretch/kstuff-lite/releases?per_page=10'
+    api = '/gh/repos/EchoStretch/kstuff-lite/releases?per_page=20'
 
     def catalog(kstuff_version):
         server.route('/catalog.json', {'name': 'Fixture', 'payloads': [
@@ -399,7 +410,7 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-updater-') as temp:
     (selfdir / 'state.txt').write_text(f'attempt={running}\nhealthy=\nfailed=0.9.0\n')
     run('healthy')
     check(f'healthy={running}' in (selfdir / 'state.txt').read_text() and 'attempt=\n' in (selfdir / 'state.txt').read_text())
-    channel_api = f'/gh/repos/{CHANNEL}/releases?per_page=10'
+    channel_api = f'/gh/repos/{CHANNEL}/releases?per_page=20'
     good = fork('0.8.0')
     server.route('/dl/manager-0.8.0', good)
     server.route(channel_api, [{'tag_name': 'v0.8.0', 'draft': False, 'prerelease': False,

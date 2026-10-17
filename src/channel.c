@@ -28,6 +28,9 @@ __attribute__((used)) volatile const char pldmgr_channel_sig[] = "PLDMGR_CHANNEL
 static pthread_mutex_t channel_mutex = PTHREAD_MUTEX_INITIALIZER;
 static ChannelStatus status;
 
+/* Referenced from startup and status so --gc-sections keeps the marker. */
+const char *channel_repo(void) { return (const char *)pldmgr_channel_sig + MARKER_LEN; }
+
 int channel_is_official(void) { return !strcasecmp(PLDMGR_UPDATE_REPO, PLDMGR_OFFICIAL_REPO); }
 
 static int channel_value_valid(const char *v, size_t n) {
@@ -305,7 +308,7 @@ void channel_status(ChannelStatus *out) {
     pthread_mutex_lock(&channel_mutex);
     *out = status;
     pthread_mutex_unlock(&channel_mutex);
-    snprintf(out->repo, sizeof(out->repo), "%s", PLDMGR_UPDATE_REPO);
+    snprintf(out->repo, sizeof(out->repo), "%s", channel_repo());
     out->official = channel_is_official();
     if (!channel_pending_version(out->pending, sizeof(out->pending))) out->pending[0] = 0;
     if (!out->state[0]) snprintf(out->state, sizeof(out->state), "idle");

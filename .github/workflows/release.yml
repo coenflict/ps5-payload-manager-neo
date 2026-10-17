@@ -52,6 +52,13 @@ jobs:
           chmod +x build_release.sh
           ./build_release.sh
 
+      - name: Verify update channel marker
+        run: |
+          # Without the marker the build would identify as the official
+          # channel and reject this repository's releases.
+          grep -aq "PLDMGR_CHANNEL:${{ github.repository }}" "pldmgr_v${{ steps.version.outputs.version }}.elf" || {
+            echo "pldmgr ELF lacks PLDMGR_CHANNEL:${{ github.repository }}"; exit 1; }
+
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

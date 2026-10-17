@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
         printf("%d %s\n", rc, rc ? "-" : out);
     } else if (!strcmp(cmd, "glob")) printf("%d\n", upstream_glob_match(argv[2], argv[3]));
     else if (!strcmp(cmd, "major")) printf("%ld\n", upstream_major_version(argv[2]));
+    else if (!strcmp(cmd, "prerelease")) printf("%d\n", upstream_version_is_prerelease(argv[2]));
     else if (!strcmp(cmd, "select")) {
         char *json = NULL; size_t size = 0;
         CHECK(!read_file_text(argv[2], &json, &size));

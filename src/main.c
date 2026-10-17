@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     /* The loader transfer may encounter a closed socket before services start. */
     signal(SIGPIPE, SIG_IGN);
     char update_path[1024], update_version[64];
-    pldmgr_log("[PLDMGR] Update channel: %s\n", PLDMGR_UPDATE_REPO);
+    pldmgr_log("[PLDMGR] Update channel: %s\n", channel_repo());
     if (channel_select_handoff(update_path, sizeof(update_path), update_version, sizeof(update_version))) {
         pldmgr_log("[PLDMGR] Handing off to self-update %s\n", update_version);
         channel_record_attempt(update_version);

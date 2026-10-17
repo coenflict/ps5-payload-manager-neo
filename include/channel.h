@@ -22,6 +22,7 @@ typedef struct ChannelStatus {
     char message[160];
 } ChannelStatus;
 
+const char *channel_repo(void); /* embedded marker value */
 int channel_is_official(void);
 /* 1 when the ELF at fd carries this build's channel (offset preserved). */
 int channel_fd_matches(int fd);

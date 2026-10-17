@@ -319,8 +319,8 @@ normally uses **5173** with its same-origin proxy.
 
 | Request class | Method and behavior |
 | --- | --- |
-| Read APIs | GET: `/list_payloads`, `/get_config`, `/processes_list`, `/history_list`, `/repository_payloads`, `/repository_icons?source=<source-id>`, `/sources_list`, `/autoload_status`, `/log`, `/events`, `/version`, `/getip`, `/manage:check`, `/usb_move_check`. Ordinary repository reads may refresh their cache. Anonymous/foreign autoload status reads do not signal frontend readiness. |
-| Explicit mutations | POST: `/manage:upload`, `/manage:delete`, `/loadpayload:<slot-or-path>`, `/set_config`, `/abort`, `/autoload_clear`, `/repository_refresh`, `/repository_cache_clear`, `/repository_install`, `/sources_set`, `/sources_add`, `/sources_remove`, `/usb_move_perform`, `/process_kill`, `/shutdown`. GET does not perform these actions. |
+| Read APIs | GET: `/list_payloads`, `/get_config`, `/processes_list`, `/history_list`, `/repository_payloads`, `/repository_icons?source=<source-id>`, `/sources_list`, `/autoload_status`, `/updates_status`, `/log`, `/events`, `/version`, `/getip`, `/manage:check`, `/usb_move_check`. Ordinary repository reads may refresh their cache. Anonymous/foreign autoload status reads do not signal frontend readiness. |
+| Explicit mutations | POST: `/manage:upload`, `/manage:delete`, `/loadpayload:<slot-or-path>`, `/set_config`, `/abort`, `/autoload_clear`, `/repository_refresh`, `/repository_cache_clear`, `/repository_install`, `/sources_set`, `/sources_add`, `/sources_remove`, `/usb_move_perform`, `/process_kill`, `/updates_check`, `/updates_apply`, `/updates_rollback`, `/updates_settings`, `/shutdown`. GET does not perform these actions. |
 | Preflight | OPTIONS is validated against the requesting origin, route/method and supported headers. Foreign origins do not gain mutation access. |
 | Removed updater compatibility | GET `/update_check` returns `{"status":"none"}`. It does not check, download or apply updates. |
 
@@ -374,7 +374,36 @@ actual repository provider, rendered images and Settings action in Chrome, with
 all external requests blocked. Mock repository fixtures use `test_repo.json` and
 `test_icons.json`.
 
+## Automatic updates
+
+`src/updater.c` runs one pass at startup (`updater_start(1)` right after the
+HTTP daemon starts) and on `/updates_check`. `src/upstream.c` resolves GitHub
+and Gitea/Forgejo releases with ETag-conditional, cached requests;
+`src/boot_guard.c` restores updated payloads after an interrupted boot;
+`src/channel.c` scopes manager self-updates to the build's release channel.
+`src/autoload.c` calls `updater_wait_entry()` before each launch. Behaviour,
+policies and limits are documented in [AUTO_UPDATES.md](AUTO_UPDATES.md).
+
+`python3 tests/run_updater_tests.py` (also `--thread-sanitize`) builds the
+actual updater, resolver, guard, channel, repository, sources and slot code and
+drives it against a local HTTP fixture that impersonates the GitHub API, the
+catalog and asset hosts. It covers upstream-first selection, catalog fallback,
+ETag/304 reuse, rate limits, tampered and non-ELF assets, policies, approval,
+rollback, the boot budget, offline/disabled boots, crash rollback, channel
+handoff/health and downloads, and a vanished server. `run_autoload_tests.py`
+covers the per-entry gate.
+
+The release channel defaults to `PLDMGR_UPDATE_REPO` in `include/pldmgr.h`;
+`make PLDMGR_UPDATE_REPO=owner/repo` (or the same variable for
+`build_release.sh`) overrides it. The release workflow passes the repository it
+runs in.
+
 ## Payload Manager self-updates
+
+Builds whose channel is `itsPLK/ps5-payload-manager` keep the legacy mechanism
+below. Other channels never use it: they ignore the official catalog's
+`pldmgr` entry and legacy update files, and update from their own GitHub
+releases into `/data/pldmgr/self/` (see [AUTO_UPDATES.md](AUTO_UPDATES.md#payload-manager-self-updates)).
 
 The official repository alone supplies `pldmgr` updates. Downloads require a
 SHA-256 checksum and an embedded `PLDMGR_VER:X.Y.Z` signature matching the

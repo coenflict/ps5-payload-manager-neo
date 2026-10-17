@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <pthread.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,10 +132,24 @@ int upstream_api_url(const UpstreamSpec *spec, char *out, size_t size) {
     if (!spec || !out || !size || !spec->owner[0] || !spec->repo[0]) return -1;
     int n = -1;
     if (spec->kind == UPSTREAM_GITHUB)
-        n = snprintf(out, size, "%s/repos/%s/%s/releases?per_page=10", PLDMGR_GITHUB_API, spec->owner, spec->repo);
+        n = snprintf(out, size, "%s/repos/%s/%s/releases?per_page=20", PLDMGR_GITHUB_API, spec->owner, spec->repo);
     else if (spec->kind == UPSTREAM_GITEA && spec->base[0])
-        n = snprintf(out, size, "%s/api/v1/repos/%s/%s/releases?limit=10", spec->base, spec->owner, spec->repo);
+        n = snprintf(out, size, "%s/api/v1/repos/%s/%s/releases?limit=20", spec->base, spec->owner, spec->repo);
     if (n < 0 || (size_t)n >= size) { out[0] = 0; return -1; }
+    return 0;
+}
+
+int upstream_version_is_prerelease(const char *version) {
+    static const char *words[] = { "alpha", "beta", "rc", "pre", "preview", "dev", "test", "nightly", "canary", "snapshot" };
+    if (!version) return 0;
+    for (const char *p = version; *p;) {
+        if (!isalpha((unsigned char)*p)) { p++; continue; }
+        const char *start = p;
+        while (isalpha((unsigned char)*p)) p++;
+        size_t n = (size_t)(p - start);
+        for (size_t i = 0; i < sizeof(words) / sizeof(words[0]); i++)
+            if (strlen(words[i]) == n && !strncasecmp(start, words[i], n)) return 1;
+    }
     return 0;
 }
 
@@ -253,6 +268,8 @@ static int visit_release(const char *start, const char *end, void *context) {
     UpstreamRelease candidate = {0};
     if (json_extract_string(start, end, "tag_name", candidate.tag, sizeof(candidate.tag)) ||
         !candidate.tag[0] || strpbrk(candidate.tag, "\r\n,")) return 0;
+    /* Many maintainers publish betas without the prerelease flag. */
+    if (!scan->allow_prerelease && upstream_version_is_prerelease(candidate.tag)) return 0;
     char published[64] = "";
     json_extract_string(start, end, "published_at", published, sizeof(published));
     if (strlen(published) >= 10) { memcpy(candidate.published, published, 10); candidate.published[10] = 0; }
@@ -345,6 +362,11 @@ static int parse_cached(const char *path, const UpstreamSpec *spec, int allow_pr
     return rc < 0 ? UPSTREAM_ERROR : rc;
 }
 
+/* After a transport failure (DNS, connect, timeout) GitHub is skipped briefly,
+ * so one boot never stacks a connect timeout per payload. */
+static pthread_mutex_t reachability_mutex = PTHREAD_MUTEX_INITIALIZER;
+static long github_unreachable_until;
+
 int upstream_check(const UpstreamSpec *spec, int allow_prerelease, long max_age,
                    const char *cache_dir, UpstreamRelease *out, int *from_cache,
                    char *error, size_t error_size) {
@@ -372,6 +394,14 @@ int upstream_check(const UpstreamSpec *spec, int allow_prerelease, long max_age,
         if (cached) { *from_cache = 1; return parse_cached(body, spec, allow_prerelease, out); }
         if (error) snprintf(error, error_size, "GitHub rate limit reached");
         return UPSTREAM_RATE_LIMITED;
+    }
+    pthread_mutex_lock(&reachability_mutex);
+    int unreachable = spec->kind == UPSTREAM_GITHUB && github_unreachable_until > now;
+    pthread_mutex_unlock(&reachability_mutex);
+    if (unreachable) {
+        if (cached) { *from_cache = 1; return parse_cached(body, spec, allow_prerelease, out); }
+        if (error) snprintf(error, error_size, "Upstream unreachable");
+        return UPSTREAM_ERROR;
     }
     char temp[544];
     snprintf(temp, sizeof(temp), "%s/.upstream-XXXXXX", cache_dir);
@@ -403,6 +433,11 @@ int upstream_check(const UpstreamSpec *spec, int allow_prerelease, long max_age,
         return UPSTREAM_ERROR;
     }
     remove(temp);
+    if (!request.status && spec->kind == UPSTREAM_GITHUB) {
+        pthread_mutex_lock(&reachability_mutex);
+        github_unreachable_until = now + 60;
+        pthread_mutex_unlock(&reachability_mutex);
+    }
     int limited = spec->kind == UPSTREAM_GITHUB &&
         ((request.status == 403 && request.ratelimit_remaining == 0) || request.status == 429 ||
          (request.status == 403 && request.retry_after > 0));

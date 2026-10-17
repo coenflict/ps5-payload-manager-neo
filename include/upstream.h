@@ -68,6 +68,10 @@ int upstream_check(const UpstreamSpec *spec, int allow_prerelease, long max_age,
                    const char *cache_dir, UpstreamRelease *out, int *from_cache,
                    char *error, size_t error_size);
 
+/* Tag names with alpha/beta/rc/pre/dev/test/... words are prereleases even
+ * when the release is not flagged; "2.5B"-style suffixes are not. */
+int upstream_version_is_prerelease(const char *version);
+
 /* Major component used to gate potentially breaking updates; -1 when the
  * version has no leading number or looks like a build number/date. */
 long upstream_major_version(const char *version);
