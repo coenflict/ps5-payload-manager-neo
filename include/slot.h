@@ -43,6 +43,15 @@ typedef struct SlotMeta {
 int slot_mode_valid(const char *mode);
 int slot_commit_file(const char *base_key, const char *source, const char *mode,
                      SlotMeta *meta, int check_repo_conflict, char *out_key, size_t out_size);
+/* Replace an existing slot in place, retaining the replaced payload and
+ * metadata in <slot>/.previous for slot_restore_previous. */
+#define SLOT_PREVIOUS_DIR ".previous"
+int slot_commit_update(const char *slot_key, const char *source, SlotMeta *meta,
+                       char *out_key, size_t out_size);
+/* Metadata of the retained version (payload_path points into the backup). */
+int slot_previous_version(const char *slot_key, SlotMeta *out);
+/* Swap the retained version back in; the replaced one becomes the backup. */
+int slot_restore_previous(const char *slot_key, SlotMeta *restored);
 /* Recover interrupted commits before migration or serving requests. */
 int slot_storage_recover(void);
 

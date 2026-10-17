@@ -14,6 +14,8 @@
 #include "json_helpers.h"
 #include "slot.h"
 #include "ps5_launcher.h"
+#include "updater.h"
+#include "boot_guard.h"
 
 #ifndef PLDMGR_FRONTEND_WAIT_MS
 #define PLDMGR_FRONTEND_WAIT_MS 5000
@@ -45,8 +47,10 @@ const char *pldmgr_autoload_state_name(AutoloadState state) {
 }
 void pldmgr_autoload_get_snapshot(AutoloadSnapshot *out) {
     if (!out) return;
+    int updating = updater_boot_waiting();
     pthread_mutex_lock(&state_mutex);
     *out = status;
+    out->updating = updating && status.state == AUTOLOAD_EXECUTING;
     if (status.state == AUTOLOAD_COUNTDOWN) {
         out->remaining_ms = countdown_end - now_ms();
         if (out->remaining_ms < 0) out->remaining_ms = 0;
@@ -274,12 +278,18 @@ static void *autoload_worker(void *argument) {
         set_current(entry->key);
         pthread_mutex_unlock(&state_mutex);
         int skipped=0, failed=0;
-        char path[512];
+        char path[512], managed[128]="";
+        /* Launch this entry's update first when its check finishes within the
+         * boot budget; otherwise, or on any failure, use the installed copy. */
+        if (!is_pldmgr_name(entry->key) && updater_wait_entry(entry->key,managed,sizeof(managed),cancelled,NULL)<0)
+            goto aborted;
+        const char *target=managed[0] ? managed : entry->key;
         if (is_pldmgr_name(entry->key)) skipped=1;
-        else if (slot_resolve(entry->key,path,sizeof(path))) failed=1;
+        else if (slot_resolve(target,path,sizeof(path))) failed=1;
         else if (is_pldmgr_name(path)) skipped=1;
         else {
             pldmgr_log("[Autoload] Launching: %s\n",path);
+            if (managed[0]) boot_guard_launching(managed);
             if (ps5_launch_elf_cancellable(path,cancelled,NULL)) failed=1;
         }
         if (skipped) pldmgr_log("[Autoload] Skipping self: %s\n",entry->key);
@@ -294,6 +304,7 @@ static void *autoload_worker(void *argument) {
         if (cancelled(NULL)) goto aborted;
         if (wait_until(now_ms()+500,0)) goto aborted;
     }
+    boot_guard_sequence_done();
     free(entries); finish(AUTOLOAD_DONE);
     pldmgr_log("[Autoload] Sequence complete.\n"); return NULL;
 aborted:

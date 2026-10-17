@@ -13,6 +13,8 @@
 #include "ps5_launcher.h"
 #include "slot.h"
 #include "log_server.h"
+#include "updater.h"
+#include "boot_guard.h"
 
 int test_json_failure;
 _Atomic unsigned int test_mutation_calls, test_active_calls;
@@ -130,3 +132,23 @@ void log_stream_cleanup(void *cls) { free(cls); }
 
 int sources_clear_cache(void) { test_mutation_calls++; return 0; }
 size_t sources_icons_json(const char *id, char *buf, size_t size) { (void)id; return json(buf, size, "{\"icons\":{}}"); }
+
+/* Update manager: routing/ownership only; no network or storage. */
+size_t updater_status_json(char *buf, size_t size) { return json(buf, size, "{\"items\":[]}"); }
+int updater_check_now(void) { test_mutation_calls++; return 0; }
+int updater_settings_json(const char *data) {
+    test_mutation_calls++; test_post_size = strlen(data);
+    return strcmp(data, "invalid_test") == 0 ? CONFIG_INVALID : 0;
+}
+int updater_apply(const char *slot, char *out, size_t size) {
+    test_mutation_calls++; json(out, size, "{\"ok\":false,\"message\":\"stub\"}"); return slot ? 0 : -1;
+}
+int updater_rollback(const char *slot, char *out, size_t size) {
+    test_mutation_calls++; json(out, size, "{\"ok\":false,\"message\":\"stub\"}"); return slot ? 0 : -1;
+}
+int updater_wait_entry(const char *entry, char *slot_key, size_t size, UpdaterCancelled cancelled, void *context) {
+    (void)entry; (void)cancelled; (void)context; if (size) slot_key[0] = 0; return 0;
+}
+int updater_boot_waiting(void) { return 0; }
+void boot_guard_launching(const char *slot_key) { (void)slot_key; }
+void boot_guard_sequence_done(void) {}

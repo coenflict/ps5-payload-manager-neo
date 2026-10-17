@@ -24,7 +24,8 @@ SRCS := src/main.c src/http_server.c src/config.c src/log_server.c \
         src/sha256.c src/json_helpers.c src/repository.c src/sources.c \
         src/payload_mgr.c src/process_mgr.c \
         src/ps5_launcher.c src/notification.c src/utils.c src/autoload.c \
-        src/app_installer.c src/history_mgr.c src/slot.c
+        src/app_installer.c src/history_mgr.c src/slot.c \
+        src/upstream.c src/updater.c src/boot_guard.c src/channel.c
 OBJS := $(SRCS:.c=.o)
 ELF  := pldmgr.elf
 
@@ -42,6 +43,12 @@ ICON_PNG_HEADER := include/assets_icon_png.h
 
 # Compiler Flags
 CFLAGS := -Os -Wall -ffunction-sections -fdata-sections $(INCLUDES)
+
+# Release channel for self-updates (GitHub owner/repo). Defaults to the value
+# in include/pldmgr.h; CI passes the repository it builds in.
+ifneq ($(strip $(PLDMGR_UPDATE_REPO)),)
+CFLAGS += -DPLDMGR_UPDATE_REPO='"$(PLDMGR_UPDATE_REPO)"'
+endif
 LDFLAGS := -Wl,--gc-sections
 
 all: $(ELF)
@@ -58,6 +65,7 @@ test-host:
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_integrity_tests.py
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_repository_icons_tests.py
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_self_update_tests.py
+	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_updater_tests.py
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_storage_tests.py
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_autoload_tests.py
 	HOST_CC="$(HOST_CC)" $(PYTHON) tests/run_launcher_tests.py

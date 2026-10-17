@@ -18,6 +18,10 @@ int sources_remove(int index, char *msg_buf, size_t msg_size);
 /* Ensure a source repository cache is fresh by URL */
 int sources_ensure_fresh(const char *url, int force_refresh);
 
+/* Copy the cached catalog entry with this id (no network). 0 or -1. */
+struct RepoPayload;
+int sources_cached_entry(const char *source_url, const char *id, struct RepoPayload *out);
+
 /* Build multi-source repository JSON (grouped by source).
  * Returns complete bytes written, or 0 on serialization failure. */
 size_t sources_multi_repository_list_json(char *buf, size_t size, int force_refresh);

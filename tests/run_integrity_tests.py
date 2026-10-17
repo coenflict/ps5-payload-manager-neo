@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-integrity-') as temp:
     flags=shlex.split(os.environ.get('HOST_CC','clang'))+['-std=c11','-D_DEFAULT_SOURCE','-g','-O1','-Wall','-Wextra','-ffunction-sections','-fdata-sections','-fsanitize=address,undefined','-fno-omit-frame-pointer','-pthread','-I'+str(build),'-Iinclude','-DPLDMGR_USB_ROOT_FORMAT="'+str(build/'usb%d')+'"']
     if args.legacy:flags += ["-DLEGACY_INTEGRITY"]
     objects=[]
-    for name in ['repository','slot','utils','json_helpers','sha256','config','ps5_launcher']:
+    for name in ['repository','slot','utils','json_helpers','sha256','config','ps5_launcher','channel','upstream']:
         obj=build/(name+'.o');source=f'src/{name}.c'
         if args.legacy and name in ['repository','slot','ps5_launcher']:source=f'scratch/{name}_before_step4a.c'
         extra=['-Dsocket=integrity_socket','-Dconnect=integrity_connect','-Dsend=integrity_send'] if name=='ps5_launcher' else []

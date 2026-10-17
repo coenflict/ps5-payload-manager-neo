@@ -218,8 +218,28 @@ static int slot_storage_recover_impl(int clean_requests) {
 
 int slot_storage_recover(void) { return slot_storage_recover_impl(1); }
 
-int slot_commit_file(const char *base_key, const char *source, const char *mode,
-                     SlotMeta *meta, int check_repo_conflict, char *out_key, size_t out_size) {
+/* Retain the replaced version beside the new one, hidden from scans and launch
+ * validation by its leading dot. A failed backup never blocks the update. */
+static void keep_previous_version(const char *target, const char *prepared) {
+    SlotMeta *old = calloc(1, sizeof(*old));
+    if (!old) return;
+    char backup[900], copy[1200];
+    snprintf(backup, sizeof(backup), "%s/" SLOT_PREVIOUS_DIR, prepared);
+    if (slot_read_meta(target, old) || !old->filename[0] || !is_supported_ext(old->filename) ||
+        strchr(old->filename, '/') || old->filename[0] == '.' || mkdir(backup, 0700)) goto failed;
+    snprintf(copy, sizeof(copy), "%s/%s", backup, old->filename);
+    if (storage_copy(old->payload_path, copy) || slot_write_meta(backup, old) || storage_sync_dir(backup)) goto failed;
+    free(old);
+    return;
+failed:
+    storage_remove_tree(backup);
+    pldmgr_log("[PLDMGR] Previous version not retained for %s\n", target);
+    free(old);
+}
+
+enum { COMMIT_KEEP_PREVIOUS = 1, COMMIT_REQUIRE_EXISTING = 2 };
+static int commit_file(const char *base_key, const char *source, const char *mode, SlotMeta *meta,
+                       int check_repo_conflict, int flags, char *out_key, size_t out_size) {
     if (!storage_key_valid(base_key) || !source || !meta || !out_key || out_size < 128 ||
         !slot_mode_valid(mode) || !meta->filename[0] || meta->filename[0] == '.' ||
         strchr(meta->filename, '/') || strstr(meta->filename, "..") || !is_supported_ext(meta->filename)) return -1;
@@ -246,7 +266,10 @@ int slot_commit_file(const char *base_key, const char *source, const char *mode,
     struct stat st;
     for (int suffix = 1; suffix <= 10000; suffix++) {
         snprintf(target, sizeof(target), "%s/%s", PAYLOADS_STORAGE_DIR, key);
-        if (lstat(target, &st)) { if (errno != ENOENT) goto done; break; }
+        if (lstat(target, &st)) {
+            if (errno != ENOENT || (flags & COMMIT_REQUIRE_EXISTING)) goto done;
+            break;
+        }
         if (mode && !strcmp(mode, "replace")) {
             if (!S_ISDIR(st.st_mode)) goto done;
             break;
@@ -269,6 +292,7 @@ int slot_commit_file(const char *base_key, const char *source, const char *mode,
     snprintf(meta->slot_dir, sizeof(meta->slot_dir), "%s", target);
     snprintf(meta->payload_path, sizeof(meta->payload_path), "%s/%s", target, meta->filename);
     if (slot_write_meta(prepared, meta) || storage_sync_dir(prepared)) goto done;
+    if ((flags & COMMIT_KEEP_PREVIOUS) && !lstat(target, &st) && S_ISDIR(st.st_mode)) keep_previous_version(target, prepared);
     const char *leaf = strchr(key, '/')+1;
     if (storage_write(journal, leaf, strlen(leaf)) || storage_sync_dir(txn) || storage_sync_dir(parent)) goto done;
     if (!lstat(target, &st)) {
@@ -295,6 +319,44 @@ done:
     if (txn[0] && storage_remove_tree(txn))
         pldmgr_log("[PLDMGR] Retaining storage transaction for recovery: %s\n", txn);
     storage_unlock();
+    return rc;
+}
+
+int slot_commit_file(const char *base_key, const char *source, const char *mode,
+                     SlotMeta *meta, int check_repo_conflict, char *out_key, size_t out_size) {
+    int replace = mode && !strcmp(mode, "replace");
+    return commit_file(base_key, source, mode, meta, check_repo_conflict, replace ? COMMIT_KEEP_PREVIOUS : 0, out_key, out_size);
+}
+
+int slot_commit_update(const char *slot_key, const char *source, SlotMeta *meta,
+                       char *out_key, size_t out_size) {
+    /* Never resurrect a slot deleted while its update was downloading. */
+    return commit_file(slot_key, source, "replace", meta, 0, COMMIT_KEEP_PREVIOUS | COMMIT_REQUIRE_EXISTING, out_key, out_size);
+}
+
+int slot_previous_version(const char *slot_key, SlotMeta *out) {
+    if (!storage_key_valid(slot_key) || !out) return -1;
+    char backup[700];
+    snprintf(backup, sizeof(backup), "%s/%s/" SLOT_PREVIOUS_DIR, PAYLOADS_STORAGE_DIR, slot_key);
+    struct stat st;
+    if (lstat(backup, &st) || !S_ISDIR(st.st_mode) || slot_read_meta(backup, out) ||
+        !out->filename[0] || lstat(out->payload_path, &st) || !S_ISREG(st.st_mode)) return -1;
+    return 0;
+}
+
+int slot_restore_previous(const char *slot_key, SlotMeta *restored) {
+    SlotMeta *meta = calloc(1, sizeof(*meta));
+    if (!meta || storage_lock()) { free(meta); return -1; }
+    int rc = -1;
+    char source[1024], key[128];
+    if (slot_previous_version(slot_key, meta)) goto done;
+    snprintf(source, sizeof(source), "%s", meta->payload_path);
+    /* The current version becomes the new backup, so a restore is reversible. */
+    rc = commit_file(slot_key, source, "replace", meta, 0, COMMIT_KEEP_PREVIOUS | COMMIT_REQUIRE_EXISTING, key, sizeof(key));
+    if (!rc && restored) *restored = *meta;
+done:
+    storage_unlock();
+    free(meta);
     return rc;
 }
 
@@ -638,6 +700,12 @@ static int slot_write_meta_unlocked(const char *slot_dir, const SlotMeta *meta) 
                          "  \"origin\": \"%s\",\n"
                          "  \"origin_detail\": \"%s\"",
                     org_e, od_e);
+        if (meta->version[0] || meta->checksum[0]) {
+            char ver_e[6 * 64], csum_e[6 * 65];
+            json_escape_checked(&jb, meta->version, ver_e, sizeof(ver_e));
+            json_escape_checked(&jb, meta->checksum, csum_e, sizeof(csum_e));
+            json_append(&jb, ",\n  \"version\": \"%s\",\n  \"checksum\": \"%s\"", ver_e, csum_e);
+        }
     }
 
     json_append(&jb, "\n}\n");
@@ -773,12 +841,19 @@ int slot_open_payload(const char *path, char *out_path, size_t out_size) {
 }
 
 int slot_open_self_update(const char *path) {
-    const char *root = PAYLOADS_STORAGE_DIR "/";
-    if (!path || strncmp(path, root, strlen(root))) return -1;
-    const char *dir = path + strlen(root), *file = strchr(dir, '/');
-    if (!file || !((file - dir == 6 && !strncasecmp(dir, "pldmgr", 6)) ||
-                  (file - dir == 15 && !strncasecmp(dir, "payload-manager", 15)))) return -1;
-    file++;
+    const char *root = PAYLOADS_STORAGE_DIR "/", *channel = CHANNEL_UPDATE_DIR "/";
+    if (!path) return -1;
+    const char *file;
+    if (!strncmp(path, channel, strlen(channel))) {
+        file = path + strlen(channel);
+    } else {
+        if (strncmp(path, root, strlen(root))) return -1;
+        const char *dir = path + strlen(root);
+        file = strchr(dir, '/');
+        if (!file || !((file - dir == 6 && !strncasecmp(dir, "pldmgr", 6)) ||
+                      (file - dir == 15 && !strncasecmp(dir, "payload-manager", 15)))) return -1;
+        file++;
+    }
     if (strchr(file, '/') || strstr(file, "..") || !is_pldmgr_name(file) || !is_supported_ext(file)) return -1;
     int fd = open_without_symlinks(path);
     unsigned char magic[4];
@@ -830,7 +905,8 @@ static int slot_delete_unlocked(const char *slot_key) {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) continue;
         char file_path[768];
         snprintf(file_path, sizeof(file_path), "%s/%s", slot_dir, ent->d_name);
-        if (remove(file_path)) { closedir(d); return -1; }
+        int removed = !strcmp(ent->d_name, SLOT_PREVIOUS_DIR) ? storage_remove_tree(file_path) : remove(file_path);
+        if (removed) { closedir(d); return -1; }
     }
     if (closedir(d) || rmdir(slot_dir)) return -1;
 

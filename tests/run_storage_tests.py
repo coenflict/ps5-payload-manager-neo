@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory(prefix="pldmgr-storage-") as temp:
     flags = shlex.split(os.environ.get("HOST_CC", "clang")) + ["-std=c11", "-D_DEFAULT_SOURCE", "-g", "-O1", "-Wall", "-Wextra", "-ffunction-sections", "-fdata-sections", "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-pthread", "-I"+str(build), "-Iinclude", '-DPLDMGR_USB_ROOT_FORMAT="'+str(storage / "usb%d")+'"']
     if args.legacy: flags += ["-DLEGACY_STORAGE"]
     objects = []
-    for name in ["slot", "payload_mgr", "sources", "repository", "json_helpers", "sha256", "utils", "config"]:
+    for name in ["slot", "payload_mgr", "sources", "repository", "json_helpers", "sha256", "utils", "config", "channel", "upstream"]:
         obj = build / (name + ".o")
         extra = ["-include", "tests/storage_hooks.h"] if name in ["slot", "payload_mgr", "sources", "sha256", "utils", "json_helpers"] else []
         if name == "repository": extra += ["-Ddownload_to_file=storage_unused_download", "-Ddownload_to_file_limited=storage_unused_download_limited"]

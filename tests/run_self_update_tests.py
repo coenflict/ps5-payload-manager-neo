@@ -26,9 +26,12 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-self-') as temp:
         '-std=c11', '-D_DEFAULT_SOURCE', '-g', '-O1', '-Wall', '-Wextra', '-pthread',
         '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
         '-fno-omit-frame-pointer', '-I'+str(build), '-Iinclude',
-        '-DPLDMGR_USB_ROOT_FORMAT="'+str(build / 'usb%d')+'"']
+        '-DPLDMGR_USB_ROOT_FORMAT="'+str(build / 'usb%d')+'"',
+        # Legacy catalog self-updates belong to the official channel; forks are
+        # covered by run_updater_tests.py.
+        '-DPLDMGR_UPDATE_REPO="itsPLK/ps5-payload-manager"']
     objects = []
-    for name in ['repository', 'sources', 'slot', 'utils', 'json_helpers', 'sha256', 'config', 'payload_mgr', 'ps5_launcher']:
+    for name in ['repository', 'sources', 'slot', 'utils', 'json_helpers', 'sha256', 'config', 'payload_mgr', 'ps5_launcher', 'channel', 'upstream']:
         extra = []
         if name == 'repository':
             extra = ['-Ddownload_to_file=unused_download', '-Ddownload_to_file_limited=unused_limited_download',

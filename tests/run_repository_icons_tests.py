@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-icons-') as temporary:
     flags = shlex.split(os.environ.get('HOST_CC', 'clang')) + ['-std=c11', '-D_DEFAULT_SOURCE', '-g', '-O1', '-Wall', '-Wextra', '-pthread',
         '-ffunction-sections', '-fdata-sections', '-fsanitize=thread' if args.thread_sanitize else '-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-I'+str(build), '-Iinclude']
     objects = []
-    for name in ['sources', 'repository', 'slot', 'json_helpers', 'sha256', 'utils']:
+    for name in ['sources', 'repository', 'slot', 'json_helpers', 'sha256', 'utils', 'channel', 'upstream']:
         obj = build / (name + '.o')
         extra = ['-Ddownload_to_file=icons_unused_download', '-Ddownload_to_file_limited=icons_unused_download_limited'] if name == 'repository' else []
         subprocess.run(flags + extra + ['-c', 'src/'+name+'.c', '-o', str(obj)], cwd=ROOT, check=True)

@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='pldmgr-config-') as temp:
     flags = shlex.split(os.environ.get('HOST_CC', 'clang')) + ['-std=c11', '-D_DEFAULT_SOURCE', '-g', '-O1', '-Wall', '-Wextra', '-pthread', '-ffunction-sections', '-fdata-sections', '-I'+str(build), '-Iinclude']
     flags += ['-fsanitize=thread' if args.thread_sanitize else '-fsanitize=address,undefined', '-fno-omit-frame-pointer']
     objects = []
-    for name in ['config', 'sources', 'history_mgr', 'json_helpers', 'utils', 'sha256', 'slot', 'repository']:
+    for name in ['config', 'sources', 'history_mgr', 'json_helpers', 'utils', 'sha256', 'slot', 'repository', 'channel', 'upstream']:
         obj = build / (name+'.o')
         source = f'src/{name}.c'
         extra = ['-include', 'tests/config_hooks.h'] if name == 'json_helpers' else []

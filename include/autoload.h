@@ -12,6 +12,7 @@ typedef struct {
     int delay, scan_usb_payloads;
     long long remaining_ms;
     int entry_index, entry_duration_ms;
+    int updating; /* executing, but waiting for this entry's update check */
     long long entry_remaining_ms;
     char current[128];
     char list[4096];

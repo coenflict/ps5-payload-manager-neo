@@ -29,6 +29,7 @@ int slot_open_payload(const char *path,char *canonical,size_t size) { CHECK(!str
 int slot_open_self_update(const char *path) { (void)path; abort(); }
 int repository_self_update_version_fd(int fd, char *version, size_t size) { (void)fd; (void)version; (void)size; abort(); }
 int slot_version_compare(const char *a, const char *b) { (void)a; (void)b; abort(); }
+int channel_fd_matches(int fd) { (void)fd; abort(); }
 /* Disc-player calls are recorded; host tests never signal a real process. */
 static int suspends, app_kills, signals, lookups, slept, app_queries;
 void pldmgr_notify(const char *fmt,...) { (void)fmt; }

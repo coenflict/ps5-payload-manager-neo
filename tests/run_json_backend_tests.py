@@ -34,7 +34,7 @@ def main():
         if not args.no_sanitize:
             command += ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
         subprocess.run(command + ["src/json_helpers.c", "src/utils.c", "src/repository.c",
-                                  "src/sources.c", "src/slot.c", "tests/json_backend_driver.c",
+                                  "src/sources.c", "src/slot.c", "src/channel.c", "src/upstream.c", "tests/json_backend_driver.c",
                                   "-o", str(binary)], cwd=ROOT, check=True)
         checks = 0
 

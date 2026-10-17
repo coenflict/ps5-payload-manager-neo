@@ -13,6 +13,7 @@
 #include "json_helpers.h"
 #include "sha256.h"
 #include "repository.h"
+#include "channel.h"
 #include "config.h"
 #include "pldmgr.h"
 #include "autoload.h"
@@ -143,8 +144,8 @@ size_t payload_mgr_list_json(char *json_buf, size_t buf_size) {
 
     JsonListBuilder jb = { json_buf, buf_size, 0, 1, 0 };
     if (legacy_result < -1) json_builder_fail(&jb);
-    char update_path[1024], pending_version[64], pending_e[6 * 64];
-    int pending = repository_check_self_update(update_path, sizeof(update_path), pending_version, sizeof(pending_version));
+    char pending_version[64], pending_e[6 * 64];
+    int pending = channel_pending_version(pending_version, sizeof(pending_version));
     json_escape_checked(&jb, pending ? pending_version : "", pending_e, sizeof(pending_e));
     json_append(&jb, "{\n  \"self\":{\"id\":\"pldmgr\",\"running_version\":\"%s\",\"pending_version\":\"%s\"},\n", MENU_VERSION, pending_e);
     json_append(&jb, "  \"items\": [\n");
@@ -204,6 +205,11 @@ size_t payload_mgr_list_json(char *json_buf, size_t buf_size) {
                              "      \"origin\": \"%s\",\n"
                              "      \"origin_detail\": \"%s\"",
                         org_e, od_e);
+            if (slots[i].version[0]) {
+                char ver_e[6 * 64];
+                json_escape_checked(&jb, slots[i].version, ver_e, sizeof(ver_e));
+                json_append(&jb, ",\n      \"version\": \"%s\"", ver_e);
+            }
         }
 
         json_append(&jb, "\n    }%s\n", (i + 1 < slot_count) ? "," : "");

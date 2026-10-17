@@ -536,6 +536,20 @@ int sources_ensure_fresh(const char *url, int force_refresh) {
     return result;
 }
 
+int sources_cached_entry(const char *source_url, const char *id, RepoPayload *out) {
+    if (!source_url || !source_url[0] || !id || !id[0] || !out) return -1;
+    char cache_path[512], ts_path[512], *json = NULL; size_t size = 0;
+    RepoPayload *items = NULL; size_t count = 0; int rc = -1;
+    get_cache_paths(source_url, cache_path, sizeof(cache_path), ts_path, sizeof(ts_path));
+    pthread_mutex_lock(&repository_cache_mutex);
+    if (!read_file_text(cache_path, &json, &size) && json && !parse_repository_payloads(json, &items, &count)) {
+        for (size_t i = 0; i < count; i++) if (!strcmp(items[i].id, id)) { *out = items[i]; rc = 0; break; }
+    }
+    pthread_mutex_unlock(&repository_cache_mutex);
+    free(items); free(json);
+    return rc;
+}
+
 size_t sources_icons_json(const char *source_id, char *buf, size_t size) {
     if (!source_id || !buf || !size) return 0;
     buf[0] = 0; size_t result = 0;

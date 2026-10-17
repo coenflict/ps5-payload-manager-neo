@@ -80,7 +80,7 @@ int download_to_file_limited(const char *url, const char *path, size_t limit) { 
                        ["-Ddownload_to_file=json_unused_download", "-Ddownload_to_file_limited=json_unused_download_limited", "-c", "src/repository.c", "-o", str(repository)],
                        cwd=ROOT, check=True)
         binary = build / "json_size_tests"
-        sources = [source(name) for name in ["history_mgr", "log_server", "payload_mgr", "slot", "sources", "process_mgr", "config"]]
+        sources = [source(name) for name in ["history_mgr", "log_server", "payload_mgr", "slot", "sources", "process_mgr", "config", "channel", "upstream"]]
         subprocess.run(common + [str(helper), str(repository), "src/utils.c", "src/sha256.c", *sources,
                                  str(build / "kernel.c"), "tests/json_size_driver.c", "-lcurl", "-o", str(binary)],
                        cwd=ROOT, check=True)

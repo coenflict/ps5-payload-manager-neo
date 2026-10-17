@@ -28,6 +28,7 @@
 #include "ps5_launcher.h"
 #include "slot.h"
 #include "json_helpers.h"
+#include "updater.h"
 
 #include "assets_index_html.h"
 #include "assets_cache_appcache.h"
@@ -64,7 +65,8 @@ static int is_mutation_route(const char *url) {
     const char *routes[] = { ROUTE_UPLOAD, ROUTE_DELETE, ROUTE_SHUTDOWN,
         ROUTE_SET_CONFIG, ROUTE_ABORT, ROUTE_AUTOLOAD_CLEAR, ROUTE_REPO_REFRESH,
         ROUTE_REPO_INSTALL, ROUTE_SOURCES_SET, ROUTE_SOURCES_ADD,
-        ROUTE_SOURCES_REMOVE, ROUTE_REPO_CACHE_CLEAR, ROUTE_USB_MOVE_PERFORM, ROUTE_PROCESS_KILL };
+        ROUTE_SOURCES_REMOVE, ROUTE_REPO_CACHE_CLEAR, ROUTE_USB_MOVE_PERFORM, ROUTE_PROCESS_KILL,
+        ROUTE_UPDATES_CHECK, ROUTE_UPDATES_APPLY, ROUTE_UPDATES_ROLLBACK, ROUTE_UPDATES_SETTINGS };
     for (size_t i = 0; i < sizeof(routes)/sizeof(routes[0]); i++)
         if (!strcmp(url, routes[i])) return 1;
     return !strncmp(url, ROUTE_LOAD_PAYLOAD, strlen(ROUTE_LOAD_PAYLOAD));
@@ -211,7 +213,7 @@ struct UploadStatus {
     char mode[32];
 };
 
-enum RequestKind { REQUEST_CONFIG, REQUEST_SOURCES, REQUEST_UPLOAD, REQUEST_ACTION };
+enum RequestKind { REQUEST_CONFIG, REQUEST_SOURCES, REQUEST_UPDATES, REQUEST_UPLOAD, REQUEST_ACTION };
 
 struct RequestContext {
     enum RequestKind kind;
@@ -413,6 +415,7 @@ static int is_noisy_route(const char *url) {
     if (strcmp(url, ROUTE_PROCESSES_LIST) == 0) return 1;
     if (strcmp(url, ROUTE_HISTORY_LIST) == 0) return 1;
     if (strcmp(url, ROUTE_UPDATE_CHECK) == 0) return 1;
+    if (strcmp(url, ROUTE_UPDATES_STATUS) == 0) return 1;
     if (strcmp(url, "/events") == 0) return 1;
     return 0;
 }
@@ -460,14 +463,16 @@ enum MHD_Result http_on_request(void *cls, struct MHD_Connection *conn,
         int upload = strcmp(url, ROUTE_UPLOAD) == 0;
         int config = strcmp(url, ROUTE_SET_CONFIG) == 0 && strcmp(method, "POST") == 0;
         int sources = strcmp(url, ROUTE_SOURCES_SET) == 0 && strcmp(method, "POST") == 0;
-        if (upload || config || sources || mutation) {
+        int updates = strcmp(url, ROUTE_UPDATES_SETTINGS) == 0 && strcmp(method, "POST") == 0;
+        if (upload || config || sources || updates || mutation) {
             struct RequestContext *request = malloc(sizeof(*request));
             if (!request) {
                 *con_cls = REQUEST_MARKER;
                 return send_out_of_memory(conn);
             }
             memset(request, 0, sizeof(*request));
-            request->kind = upload ? REQUEST_UPLOAD : (config ? REQUEST_CONFIG : (sources ? REQUEST_SOURCES : REQUEST_ACTION));
+            request->kind = upload ? REQUEST_UPLOAD : config ? REQUEST_CONFIG : sources ? REQUEST_SOURCES :
+                            updates ? REQUEST_UPDATES : REQUEST_ACTION;
             *con_cls = request;
             unsigned int error;
             if (upload) {
@@ -514,8 +519,9 @@ enum MHD_Result http_on_request(void *cls, struct MHD_Connection *conn,
             }
             if (!post->size)
                 return finish_request_error(conn, request, MHD_HTTP_BAD_REQUEST);
-            int rc = request->kind == REQUEST_CONFIG
-                ? config_handle_set_json(post->data) : sources_save(post->data, post->size);
+            int rc = request->kind == REQUEST_CONFIG ? config_handle_set_json(post->data)
+                   : request->kind == REQUEST_UPDATES ? updater_settings_json(post->data)
+                   : sources_save(post->data, post->size);
             if (rc != 0)
                 return finish_request_error(conn, request, rc == CONFIG_INVALID ? MHD_HTTP_BAD_REQUEST : MHD_HTTP_INTERNAL_SERVER_ERROR);
             request->finished = 1;
@@ -824,6 +830,31 @@ enum MHD_Result http_on_request(void *cls, struct MHD_Connection *conn,
         add_response_header(resp, "Content-Type", "application/json");
 
         return send_response(conn, rc == 0 ? MHD_HTTP_OK : MHD_HTTP_BAD_REQUEST, resp);
+    } else if (strcmp(url, ROUTE_UPDATES_STATUS) == 0) {
+        char *resp_buf;
+        if (!alloc_response_buffer(&resp_buf))
+            return send_out_of_memory(conn);
+        size_t len = updater_status_json(resp_buf, RESPONSE_BUFFER_SIZE);
+        if (!len || len >= RESPONSE_BUFFER_SIZE) return send_serialization_error(conn, resp_buf);
+        resp = create_buffer_response(len, (void *)resp_buf, MHD_RESPMEM_MUST_FREE);
+        add_response_header(resp, "Content-Type", "application/json");
+        add_response_header(resp, "Cache-Control", "no-store");
+    } else if (strcmp(url, ROUTE_UPDATES_CHECK) == 0) {
+        int rc = updater_check_now();
+        const char *body = rc == 0 ? "{\"ok\":true,\"started\":true}" : rc == 1 ? "{\"ok\":true,\"started\":false}" : "{\"ok\":false}";
+        resp = create_buffer_response(strlen(body), (void *)body, MHD_RESPMEM_PERSISTENT);
+        add_response_header(resp, "Content-Type", "application/json");
+        return send_response(conn, rc < 0 ? MHD_HTTP_INTERNAL_SERVER_ERROR : MHD_HTTP_OK, resp);
+    } else if (strcmp(url, ROUTE_UPDATES_APPLY) == 0 || strcmp(url, ROUTE_UPDATES_ROLLBACK) == 0) {
+        const char *slot = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "slot");
+        char json_resp[1024];
+        int rc = strcmp(url, ROUTE_UPDATES_APPLY) == 0
+            ? updater_apply(slot, json_resp, sizeof(json_resp))
+            : updater_rollback(slot, json_resp, sizeof(json_resp));
+        if (!json_resp[0]) return send_request_error(conn, MHD_HTTP_INTERNAL_SERVER_ERROR, "JSON serialization failed or exceeds the size limit");
+        resp = create_buffer_response(strlen(json_resp), (void *)json_resp, MHD_RESPMEM_MUST_COPY);
+        add_response_header(resp, "Content-Type", "application/json");
+        return send_response(conn, rc == 0 ? MHD_HTTP_OK : MHD_HTTP_BAD_REQUEST, resp);
     } else if (strcmp(url, ROUTE_SOURCES_LIST) == 0) {
         char *resp_buf;
         if (!alloc_response_buffer_sized(&resp_buf, SOURCES_RESPONSE_BUFFER_SIZE))
@@ -998,11 +1029,11 @@ enum MHD_Result http_on_request(void *cls, struct MHD_Connection *conn,
         json_format(resp_buf, SMALL_RESPONSE_BUFFER_SIZE,
                  "{\"remaining\":%d,\"remaining_ms\":%lld,\"total\":%d,\"done\":%d,\"current\":\"%s\","
                  "\"list\":\"%s\",\"delay\":%d,\"KILL_DISC_PLAYER_ON_STARTUP\":%s,\"SCAN_USB_PAYLOADS\":%s,"
-                 "\"state\":\"%s\",\"successful\":%d,\"failed\":%d,\"skipped\":%d,\"outcomes\":\"%s\",\"entry_index\":%d,\"entry_duration_ms\":%d,\"entry_remaining_ms\":%lld}",
+                 "\"state\":\"%s\",\"successful\":%d,\"failed\":%d,\"skipped\":%d,\"outcomes\":\"%s\",\"entry_index\":%d,\"entry_duration_ms\":%d,\"entry_remaining_ms\":%lld,\"updating\":%s}",
                  snapshot.remaining, snapshot.remaining_ms, snapshot.total, snapshot.done, current_escaped,
                  list_escaped, snapshot.delay, cfg.kill_disc_player ? "true" : "false", snapshot.scan_usb_payloads ? "true" : "false",
                  pldmgr_autoload_state_name(snapshot.state),snapshot.successful,snapshot.failed,snapshot.skipped,snapshot.outcomes,
-                 snapshot.entry_index,snapshot.entry_duration_ms,snapshot.entry_remaining_ms);
+                 snapshot.entry_index,snapshot.entry_duration_ms,snapshot.entry_remaining_ms,snapshot.updating ? "true" : "false");
         if (!resp_buf[0]) return send_serialization_error(conn, resp_buf);
         resp = create_buffer_response(strlen(resp_buf),
                                                (void *)resp_buf,

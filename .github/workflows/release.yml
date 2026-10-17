@@ -44,6 +44,10 @@ jobs:
           echo "Release $TAG does not exist. Proceeding."
 
       - name: Build Payload Manager
+        env:
+          # Self-updates follow the repository that publishes this release, so
+          # a fork's build never replaces itself with an upstream build.
+          PLDMGR_UPDATE_REPO: ${{ github.repository }}
         run: |
           chmod +x build_release.sh
           ./build_release.sh

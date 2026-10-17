@@ -11,9 +11,12 @@
 #include "config.h"
 #include "json_helpers.h"
 #include "ps5_launcher.h"
+#include "updater.h"
+#include "boot_guard.h"
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"FAIL %d: %s\n",__LINE__,#x); exit(1); } } while(0)
 static _Atomic int launches, blocked, released, entered, fail_thread, fail_alloc, created, joined;
+static char launched_path[256];
 void *autoload_test_calloc(size_t count,size_t size) { return fail_alloc ? NULL : calloc(count,size); }
 int autoload_test_pthread_create(pthread_t *thread,const pthread_attr_t *attr,void *(*fn)(void *),void *arg) {
     if(fail_thread) return EAGAIN;
@@ -29,12 +32,26 @@ int slot_resolve(const char *key,char *out,size_t size) {
 }
 int ps5_launch_elf_cancellable(const char *path,PayloadLaunchCancelled cancelled,void *context) {
     entered++;
+    snprintf(launched_path,sizeof(launched_path),"%s",path);
     while(blocked && !released) { if(cancelled && cancelled(context))return -1;usleep(1000); }
     if(cancelled && cancelled(context))return -1;
     if(strstr(path,"fail"))return -1;
     launches++;return 0;
 }
 int ps5_launch_elf(const char *path) { return ps5_launch_elf_cancellable(path,NULL,NULL); }
+/* Update gate: "local/gated" waits until released or cancelled; it maps to a
+ * managed slot whose launch is recorded by the boot guard. */
+static _Atomic int hold_update, update_released, update_waits, guarded, updating_seen;
+int updater_wait_entry(const char *entry,char *slot_key,size_t size,UpdaterCancelled cancelled,void *context) {
+    slot_key[0]=0;
+    if(strcmp(entry,"local/gated"))return 0;
+    update_waits++;
+    while(hold_update && !update_released) { if(cancelled && cancelled(context))return -1;usleep(1000); }
+    snprintf(slot_key,size,"repo/gated@00000000");return 0;
+}
+int updater_boot_waiting(void) { return hold_update && !update_released && update_waits; }
+void boot_guard_launching(const char *slot_key) { if(!strcmp(slot_key,"repo/gated@00000000"))guarded++; }
+void boot_guard_sequence_done(void) {}
 static long long now_ms(void) { struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (long long)t.tv_sec*1000+t.tv_nsec/1000000; }
 static void setup(const char *list,int browser,int delay) {
     PldmgrConfig cfg={.autoload_enabled=1,.auto_browser_open=browser,.autoload_delay=delay};
@@ -163,6 +180,18 @@ static void frontend_timeout(void) {
     wait_state(AUTOLOAD_DONE);pldmgr_autoload_stop();CHECK(now_ms()-begin>=2000 && launches==1);
     puts("Autoload frontend timeout: one sequence starts without a frontend after the bounded wait");
 }
+static void update_gate(void) {
+    hold_update=1;setup("local/gated",0,0);CHECK(!pldmgr_autoload_start());
+    long long end=now_ms()+3000;AutoloadSnapshot snapshot;
+    do { pldmgr_autoload_get_snapshot(&snapshot);if(snapshot.updating)updating_seen=1;usleep(1000); } while(!updating_seen && now_ms()<end);
+    CHECK(updating_seen && !launches && snapshot.state==AUTOLOAD_EXECUTING);
+    update_released=1;wait_state(AUTOLOAD_DONE);
+    CHECK(launches==1 && guarded==1 && !strcmp(launched_path,"/fixture/repo/gated@00000000"));pldmgr_autoload_stop();
+    update_released=0;launches=0;setup("local/gated\nlocal/ok",0,0);CHECK(!pldmgr_autoload_start());
+    end=now_ms()+3000;while(update_waits<2 && now_ms()<end)usleep(1000);
+    pldmgr_autoload_abort();snapshot=wait_state(AUTOLOAD_ABORTED);CHECK(!launches);pldmgr_autoload_stop();
+    puts("Autoload update gate: entry waits for its update, reports updating, launches the managed slot, guard notified; abort while waiting launches nothing");
+}
 static void thread_failure(void) {
     setup("local/ok",0,0);fail_thread=1;CHECK(pldmgr_autoload_start()==-1);wait_state(AUTOLOAD_FAILED);pldmgr_autoload_stop();
     fail_thread=0;CHECK(!pldmgr_autoload_start());wait_state(AUTOLOAD_DONE);pldmgr_autoload_stop();CHECK(created==1 && joined==1 && launches==1);
@@ -173,6 +202,6 @@ int main(int argc,char **argv) {
     if(!strcmp(argv[1],"counters"))counters();else if(!strcmp(argv[1],"reset"))active_reset();
     else if(!strcmp(argv[1],"wait")||!strcmp(argv[1],"delay")||!strcmp(argv[1],"send"))cancellable(argv[1]);
     else if(!strcmp(argv[1],"progress"))delay_progress();else if(!strcmp(argv[1],"snapshot"))snapshot_file();else if(!strcmp(argv[1],"invalid"))invalid();
-    else if(!strcmp(argv[1],"concurrency"))concurrency();else if(!strcmp(argv[1],"thread"))thread_failure();else if(!strcmp(argv[1],"unicode"))unicode_name();else if(!strcmp(argv[1],"allocation"))allocation_failure();else if(!strcmp(argv[1],"timeout"))frontend_timeout();else return 2;
+    else if(!strcmp(argv[1],"concurrency"))concurrency();else if(!strcmp(argv[1],"thread"))thread_failure();else if(!strcmp(argv[1],"unicode"))unicode_name();else if(!strcmp(argv[1],"allocation"))allocation_failure();else if(!strcmp(argv[1],"timeout"))frontend_timeout();else if(!strcmp(argv[1],"update_gate"))update_gate();else return 2;
     return 0;
 }
