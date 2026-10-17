@@ -21,6 +21,8 @@ typedef struct RepoPayload {
     char release_notes[2048];
     char author[128];
     char details_url[1024];
+    char asset_pattern[128]; /* upstream asset selector hint from the catalog */
+    char extract_file[256];  /* nonempty: upstream asset is an archive */
 } RepoPayload;
 
 #define PLDMGR_PAYLOAD_DOWNLOAD_LIMIT ((size_t)512 * 1024 * 1024)
@@ -34,6 +36,19 @@ int repository_self_update_version_fd(int fd, char *version, size_t size);
 int repository_check_self_update(char *out_path, size_t size, char *version, size_t version_size);
 int repository_install_self_update(const RepoPayload *entry, const char *source_url, const char *part_path);
 int download_to_file_limited(const char *url, const char *out_path, size_t limit);
+
+/* Conditional GET with the same TLS/redirect policy as downloads. Returns 0
+ * for HTTP 200 (body in out_path) or 304 (out_path removed); -1 otherwise,
+ * with status/rate-limit fields filled when a response arrived. */
+typedef struct HttpFetch {
+    const char *url, *out_path, *if_none_match;
+    size_t limit;
+    long connect_timeout, timeout; /* seconds; 0 selects 10/60 */
+    int api;                       /* send GitHub API Accept header */
+    long status, ratelimit_remaining, ratelimit_reset, retry_after;
+    char etag[256];
+} HttpFetch;
+int http_fetch(HttpFetch *request);
 
 /* Download a URL to a local file. Returns 0 on success, -1 on failure. */
 int download_to_file(const char *url, const char *out_path);

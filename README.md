@@ -14,6 +14,8 @@
 - **Web-Based Interface**: A modern dashboard to manage payloads from your PC, phone, or the PS5 itself.
 - **Import Payloads**: Easily add new payloads from a USB drive or download them from the cloud repository.
 - **Automated Startup**: Set up a list of payloads to load automatically whenever you start the manager.
+- **Automatic Updates**: Before each autoload payload starts, the newest verified release from its maintainer (or the catalog) is installed — with policies, rollback, a crash guard and offline fallback. See [AUTO_UPDATES.md](AUTO_UPDATES.md).
+- **Fork-safe Self-Updates**: The manager updates itself only from its own release channel, so a custom build is never replaced by another build.
 - **Home Screen Shortcut**: Installs a dedicated "Payload Manager" app icon to your PS5 home screen for quick access.
 - **Favorites and Process Management**: Keep favorite payloads at hand, inspect active processes, and terminate eligible processes.
 
@@ -33,6 +35,9 @@ If you are using an older version and don't want to update the entire autoloader
 
 ### Standalone / Manual Loading
 You can also manually load the manager like any other `.elf` file. Grab the latest version from the [Releases](https://github.com/itsPLK/ps5-payload-manager/releases) page.
+
+### Running this fork with WebKit Autoloader
+Place this build in `/data/ps5_autoloader/` with an `autoload.txt` that lists `pldmgr.elf`; it then keeps itself and your payloads updated. The one-time steps are in [AUTO_UPDATES.md](AUTO_UPDATES.md#one-time-setup-with-webkit-autoloader).
 
 ## Custom Repositories
 You can add third-party payload repositories to the manager. To learn how to create your own repository JSON and host it, see the [Custom Repositories Guide](CUSTOM_REPOSITORIES.md).

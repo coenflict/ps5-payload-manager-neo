@@ -37,7 +37,7 @@ void pldmgr_autoload_get_snapshot(AutoloadSnapshot *out) {
             snapshot.write_text(old);source=str(snapshot)
         obj=build/(name+'.o');subprocess.run(flags+extra+['-c',source,'-o',str(obj)],cwd=ROOT,check=True);objects.append(str(obj))
     binary=build/'autoload_tests';subprocess.run(flags+objects+['tests/autoload_driver.c','-Wl,-dead_strip' if sys.platform=='darwin' else '-Wl,--gc-sections','-o',str(binary)],cwd=ROOT,check=True)
-    cases=['counters'] if args.legacy else ['counters','reset','wait','delay','progress','send','snapshot','invalid','concurrency','thread','unicode','allocation','timeout']
+    cases=['counters'] if args.legacy else ['counters','reset','wait','delay','progress','send','snapshot','invalid','concurrency','thread','unicode','allocation','timeout','update_gate']
     for case in cases:
         result=subprocess.run([str(binary),case],cwd=ROOT,text=True,capture_output=True,timeout=15)
         if args.legacy:

@@ -1,3 +1,17 @@
+## v0.7.0
+
+### 🚀 Features & UX Improvements
+- **Automatic payload updates before launch**: at startup each autoload payload is checked against its maintainer's release (GitHub, Gitea/Forgejo) and the catalog; a verified newer version is installed into the same slot before that entry launches. Offline, failing or slow sources fall back to the installed payload within a configurable budget.
+- **Update policies**: Safe (major versions need approval, default), Automatic, Notify only and Off per payload; prereleases are opt-in; upstream repository and asset pattern can be overridden, also for uploaded payloads.
+- **Rollback**: the replaced version is retained; *Restore* swaps it back and skips the replaced version.
+- **Crash guard**: an updated payload that was launched in a boot that never completed is restored automatically on the next start.
+- **Settings → Automatic Updates** screen and an "updating" state in the autoload overlay.
+
+### 🛠️ Backend & Bug Fixes
+- **Fork-safe self-updates**: builds embed their release channel; handoffs and downloads are limited to the same channel, and a build that fails to start is skipped.
+- Catalog refresh no longer blocks startup; it runs in the update worker.
+- GitHub requests are conditional (ETag) and back off on rate limits and unreachable hosts.
+
 ## v0.6.1
 
 ### 🛠️ Backend & Bug Fixes

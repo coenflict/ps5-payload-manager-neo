@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Terminal, ChevronRight, Globe, Languages } from 'lucide-react'
+import { Terminal, ChevronRight, Globe, Languages, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '../../utils/helpers'
 import { LANGUAGE_NAMES } from '../../utils/localeSupport'
@@ -293,6 +293,34 @@ const SettingsView = ({ config, onSaveConfig, setShowLogs, onNavigate, onClearCa
             </button>
           )}
         </div>
+      </section>
+
+      {/* Updates */}
+      <section className="space-y-8">
+        <h3 className="label-caps !text-ps-blue !opacity-100 flex items-center space-x-4 text-xl tracking-[0.2em]">
+          <RefreshCw className="w-6 h-6" />
+          <span>{t("settings.updates_section", "Updates")}</span>
+        </h3>
+        <button
+          onClick={() => onNavigate('updates')}
+          className="group w-full text-left grid grid-cols-[1fr_auto] md:flex md:items-center md:justify-between p-5 md:p-8 bg-white/[0.03] rounded-3xl border border-white/10 hover:border-ps-blue/50 hover:bg-ps-blue/5 transition-all gap-x-4 gap-y-3 md:gap-6"
+        >
+          <div className="flex items-start md:items-center space-x-4 md:space-x-6 min-w-0 col-span-1">
+            <div className="p-3 md:p-4 bg-white/5 rounded-2xl group-hover:bg-ps-blue/10 transition-colors shrink-0">
+              <RefreshCw className="w-5 h-5 md:w-6 md:h-6 text-zinc-500 group-hover:text-ps-blue transition-colors" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <p className="font-bold text-white uppercase text-base md:text-lg tracking-tight leading-tight">{t("settings.updates_title", "Automatic Updates")}</p>
+              <p className="hidden md:!block text-sm text-zinc-500 max-w-md leading-relaxed">{t("settings.updates_desc", "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.")}</p>
+            </div>
+          </div>
+          <div className="shrink-0 col-start-2 row-start-1 md:ml-8 self-center md:self-auto">
+            <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-zinc-700 group-hover:text-ps-blue group-hover:translate-x-2 transition-all" />
+          </div>
+          <p className="md:hidden col-span-2 text-xs text-zinc-500 leading-relaxed">
+            {t("settings.updates_desc", "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.")}
+          </p>
+        </button>
       </section>
 
       {/* Diagnostics */}

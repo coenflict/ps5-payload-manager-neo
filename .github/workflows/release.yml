@@ -44,9 +44,20 @@ jobs:
           echo "Release $TAG does not exist. Proceeding."
 
       - name: Build Payload Manager
+        env:
+          # Self-updates follow the repository that publishes this release, so
+          # a fork's build never replaces itself with an upstream build.
+          PLDMGR_UPDATE_REPO: ${{ github.repository }}
         run: |
           chmod +x build_release.sh
           ./build_release.sh
+
+      - name: Verify update channel marker
+        run: |
+          # Without the marker the build would identify as the official
+          # channel and reject this repository's releases.
+          grep -aq "PLDMGR_CHANNEL:${{ github.repository }}" "pldmgr_v${{ steps.version.outputs.version }}.elf" || {
+            echo "pldmgr ELF lacks PLDMGR_CHANNEL:${{ github.repository }}"; exit 1; }
 
       - name: Create Release
         env:

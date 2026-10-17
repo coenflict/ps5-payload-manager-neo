@@ -5,6 +5,7 @@
 #include "repository.h"
 #include <limits.h>
 #include "history_mgr.h"
+#include "channel.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -54,8 +55,9 @@ static int launch_elf(const char *path, PayloadLaunchCancelled cancelled, void *
     int fd=self_update ? slot_open_self_update(path) : slot_open_payload(path,canonical,sizeof(canonical));
     if (self_update && fd >= 0) {
         char version[64];
+        /* Never hand off to a manager from another release channel. */
         if (repository_self_update_version_fd(fd, version, sizeof(version)) ||
-            slot_version_compare(version, MENU_VERSION) <= 0) { close(fd); return -1; }
+            slot_version_compare(version, MENU_VERSION) <= 0 || !channel_fd_matches(fd)) { close(fd); return -1; }
     }
     if (fd<0) { pldmgr_log("[PLDMGR] Payload path rejected: %s\n",path ? path : "(null)"); return -1; }
     int sock=socket(AF_INET,SOCK_STREAM,0);

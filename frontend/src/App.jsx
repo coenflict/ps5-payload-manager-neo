@@ -47,6 +47,7 @@ import AutoloadOverlay from './components/views/AutoloadOverlay'
 import MoveFromUsbView from './components/views/MoveFromUsbView'
 import LogViewer from './components/views/LogViewer'
 import ManageSourcesView from './components/views/ManageSourcesView'
+import UpdatesView from './components/views/UpdatesView'
 import ActiveProcessesView from './components/views/ActiveProcessesView'
 import { useHistoryNavigation, getRouteFromHash } from './hooks/useHistoryNavigation'
 
@@ -1127,6 +1128,14 @@ function App() {
             <ManageSourcesView
               onBack={() => navigate('settings')}
               ip={ip}
+              addToast={addToast}
+              showConfirm={showConfirm}
+            />
+          )}
+
+          {view === 'updates' && (
+            <UpdatesView
+              onBack={() => navigate('settings')}
               addToast={addToast}
               showConfirm={showConfirm}
             />

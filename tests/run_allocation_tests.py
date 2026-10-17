@@ -32,7 +32,7 @@ def main():
         if args.legacy:
             common += ["-DLEGACY_ALLOCATION"]
         objects = []
-        for name in ["json_helpers", "repository", "slot", "payload_mgr", "sources"]:
+        for name in ["json_helpers", "repository", "slot", "payload_mgr", "sources", "channel", "upstream"]:
             source = f"scratch/{name}_before_step3a.c" if args.legacy and name != "json_helpers" else f"src/{name}.c"
             if args.legacy and name == "payload_mgr":
                 # Test-only path overlay for the old hardcoded USB roots.

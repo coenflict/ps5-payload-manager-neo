@@ -38,8 +38,13 @@
 #define ROUTE_PROCESSES_LIST "/processes_list"
 #define ROUTE_PROCESS_KILL "/process_kill"
 #define ROUTE_HISTORY_LIST "/history_list"
+#define ROUTE_UPDATES_STATUS "/updates_status"
+#define ROUTE_UPDATES_CHECK "/updates_check"
+#define ROUTE_UPDATES_APPLY "/updates_apply"
+#define ROUTE_UPDATES_ROLLBACK "/updates_rollback"
+#define ROUTE_UPDATES_SETTINGS "/updates_settings"
 
-#define MENU_VERSION "0.6.1"
+#define MENU_VERSION "0.7.0"
 #define AUTOLOAD_CONFIG_PATH "/data/pldmgr/autoload.txt"
 #define FAVORITES_CONFIG_PATH "/data/pldmgr/favorites.txt"
 #define PLDMGR_CONFIG_PATH "/data/pldmgr/pldmgr_config.txt"
@@ -50,6 +55,21 @@
 #define LEGACY_REPOSITORY_SOURCE_URL                                           \
   "https://itsplk.github.io/ps5-payloads-mirror/payloads.json"
 #define REPOSITORY_REFRESH_INTERVAL_SEC 10800
+
+/* Automatic updates */
+#define UPDATES_CONFIG_PATH "/data/pldmgr/updates.json"
+#define UPSTREAM_CACHE_DIR "/data/pldmgr/upstream"
+#define BOOT_GUARD_PATH "/data/pldmgr/boot_guard.txt"
+/* Self-updates of non-official builds live outside the legacy directories,
+ * which official launchers scan and official self-updates prune. */
+#define CHANNEL_UPDATE_DIR "/data/pldmgr/self"
+#define PLDMGR_OFFICIAL_REPO "itsPLK/ps5-payload-manager"
+/* GitHub repository whose releases update this build. Builds only ever hand
+ * off to, or install, a manager carrying the same channel marker. Override
+ * with `make PLDMGR_UPDATE_REPO=owner/repo`; release CI uses its repository. */
+#ifndef PLDMGR_UPDATE_REPO
+#define PLDMGR_UPDATE_REPO "coenflict/ps5-payload-manager"
+#endif
 
 /* Logging (implementation in log_server.c) */
 void pldmgr_log(const char *fmt, ...);

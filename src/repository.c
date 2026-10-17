@@ -21,6 +21,7 @@
 #include "slot.h"
 #include "json_helpers.h"
 #include "pldmgr.h"
+#include "channel.h"
 #include "assets_cacert_pem.h"
 
 /* ── cURL download helper ──────────────────────────────────── */
@@ -36,22 +37,58 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, void *context) {
     return written;
 }
 
-int download_to_file_limited(const char *url, const char *out_path, size_t limit) {
-    if (!url || !out_path || !limit ||
+/* Response headers used by conditional and rate-limited API requests. */
+static size_t header_data(char *ptr, size_t size, size_t nmemb, void *context) {
+    HttpFetch *request = context;
+    if (size && nmemb > SIZE_MAX / size) return 0;
+    size_t bytes = size * nmemb;
+    char line[512];
+    size_t n = bytes < sizeof(line) - 1 ? bytes : sizeof(line) - 1;
+    memcpy(line, ptr, n); line[n] = 0;
+    while (n && (line[n - 1] == '\r' || line[n - 1] == '\n' || line[n - 1] == ' ')) line[--n] = 0;
+    char *value = strchr(line, ':');
+    if (!value) {
+        /* A new status line starts the headers of a redirect target. */
+        if (!strncmp(line, "HTTP/", 5)) {
+            request->etag[0] = 0; request->ratelimit_remaining = -1;
+            request->ratelimit_reset = 0; request->retry_after = 0;
+        }
+        return bytes;
+    }
+    *value++ = 0;
+    while (*value == ' ' || *value == '\t') value++;
+    if (!strcasecmp(line, "ETag")) {
+        if (strlen(value) < sizeof(request->etag) && !strpbrk(value, "\r\n")) strcpy(request->etag, value);
+    } else if (!strcasecmp(line, "X-RateLimit-Remaining")) request->ratelimit_remaining = strtol(value, NULL, 10);
+    else if (!strcasecmp(line, "X-RateLimit-Reset")) request->ratelimit_reset = strtol(value, NULL, 10);
+    else if (!strcasecmp(line, "Retry-After")) request->retry_after = strtol(value, NULL, 10);
+    return bytes;
+}
+
+/* One hardened transfer policy for catalogs, payloads and release APIs:
+ * embedded CA bundle, verified TLS, HTTP(S) only, no HTTPS downgrade on redirect. */
+static int http_transfer(HttpFetch *request) {
+    const char *url = request->url;
+    if (!url || !request->out_path || !request->limit ||
         (strncasecmp(url, "https://", 8) && strncasecmp(url, "http://", 7))) return -1;
-    FILE *fp = fopen(out_path, "wb");
+    request->status = 0; request->etag[0] = 0;
+    request->ratelimit_remaining = -1; request->ratelimit_reset = 0; request->retry_after = 0;
+    FILE *fp = fopen(request->out_path, "wb");
     if (!fp) return -1;
     CURL *curl = curl_easy_init();
     CURLcode res = CURLE_FAILED_INIT;
-    DownloadOutput output = { fp, 0, limit };
+    DownloadOutput output = { fp, 0, request->limit };
+    struct curl_slist *headers = NULL;
     if (curl) {
 #define SET_OPTION(option, value) do { res = curl_easy_setopt(curl, option, value); if (res != CURLE_OK) goto finished; } while (0)
         SET_OPTION(CURLOPT_URL, url);
         SET_OPTION(CURLOPT_NOSIGNAL, 1L);
-        SET_OPTION(CURLOPT_CONNECTTIMEOUT, strcmp(url, REPOSITORY_SOURCE_URL) ? 10L : 3L);
-        SET_OPTION(CURLOPT_TIMEOUT, strcmp(url, REPOSITORY_SOURCE_URL) ? 60L : 5L);
+        SET_OPTION(CURLOPT_CONNECTTIMEOUT, request->connect_timeout);
+        SET_OPTION(CURLOPT_TIMEOUT, request->timeout);
         SET_OPTION(CURLOPT_WRITEFUNCTION, write_data);
         SET_OPTION(CURLOPT_WRITEDATA, &output);
+        SET_OPTION(CURLOPT_HEADERFUNCTION, header_data);
+        SET_OPTION(CURLOPT_HEADERDATA, request);
         SET_OPTION(CURLOPT_USERAGENT, "pldmgr/1.0");
         struct curl_blob blob = { (void *)assets_cacert_pem, assets_cacert_pem_len, CURL_BLOB_COPY };
         SET_OPTION(CURLOPT_CAINFO_BLOB, &blob);
@@ -59,7 +96,7 @@ int download_to_file_limited(const char *url, const char *out_path, size_t limit
         SET_OPTION(CURLOPT_SSL_VERIFYHOST, 2L);
         SET_OPTION(CURLOPT_FOLLOWLOCATION, 1L);
         SET_OPTION(CURLOPT_MAXREDIRS, 5L);
-        SET_OPTION(CURLOPT_MAXFILESIZE_LARGE, (curl_off_t)limit);
+        SET_OPTION(CURLOPT_MAXFILESIZE_LARGE, (curl_off_t)request->limit);
 #if LIBCURL_VERSION_NUM >= 0x075500
         SET_OPTION(CURLOPT_PROTOCOLS_STR, "http,https");
         SET_OPTION(CURLOPT_REDIR_PROTOCOLS_STR, strncasecmp(url, "https://", 8) ? "http,https" : "https");
@@ -67,20 +104,49 @@ int download_to_file_limited(const char *url, const char *out_path, size_t limit
         SET_OPTION(CURLOPT_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
         SET_OPTION(CURLOPT_REDIR_PROTOCOLS, strncasecmp(url, "https://", 8) ? (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS) : (long)CURLPROTO_HTTPS);
 #endif
+        if (request->api) headers = curl_slist_append(headers, "Accept: application/vnd.github+json");
+        if (request->if_none_match && request->if_none_match[0] && strlen(request->if_none_match) < 300 &&
+            !strpbrk(request->if_none_match, "\r\n")) {
+            char condition[320];
+            snprintf(condition, sizeof(condition), "If-None-Match: %s", request->if_none_match);
+            struct curl_slist *grown = curl_slist_append(headers, condition);
+            if (grown) headers = grown;
+        }
+        if (headers) SET_OPTION(CURLOPT_HTTPHEADER, headers);
         res = curl_easy_perform(curl);
-        long status = 0;
-        if (res == CURLE_OK && (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status) != CURLE_OK || status != 200))
+        if (res == CURLE_OK && curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &request->status) != CURLE_OK)
             res = CURLE_HTTP_RETURNED_ERROR;
+        if (res == CURLE_OK && request->status != 200 && request->status != 304)
+            pldmgr_log("[PLDMGR] Download returned HTTP %ld: %s\n", request->status, url);
 finished:
         if (res != CURLE_OK) pldmgr_log("[PLDMGR] Verified download failed: %s (%s)\n", url, curl_easy_strerror(res));
         curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
 #undef SET_OPTION
     }
     int failed = res != CURLE_OK || ferror(fp);
     if (fflush(fp)) failed = 1;
     if (!failed && fsync(fileno(fp))) failed = 1;
     if (fclose(fp)) failed = 1;
-    if (failed) { remove(out_path); return -1; }
+    if (!failed && request->status != 200 && request->status != 304) failed = 1;
+    if (failed || request->status != 200) remove(request->out_path);
+    return failed ? -1 : 0;
+}
+
+int http_fetch(HttpFetch *request) {
+    if (!request) return -1;
+    if (!request->connect_timeout) request->connect_timeout = 10;
+    if (!request->timeout) request->timeout = 60;
+    return http_transfer(request);
+}
+
+int download_to_file_limited(const char *url, const char *out_path, size_t limit) {
+    HttpFetch request = { .url = url, .out_path = out_path, .limit = limit };
+    int official = url && !strcmp(url, REPOSITORY_SOURCE_URL);
+    request.connect_timeout = official ? 3 : 10;
+    request.timeout = official ? 5 : 60;
+    if (http_transfer(&request)) return -1;
+    if (request.status != 200) { remove(out_path); return -1; }
     return 0;
 }
 
@@ -222,6 +288,8 @@ int parse_repository_payloads(const char *json, RepoPayload **out_items, size_t 
         }
         json_extract_string(p, end + 1, "author", item->author, sizeof(item->author));
         json_extract_string(p, end + 1, "details_url", item->details_url, sizeof(item->details_url));
+        json_extract_string(p, end + 1, "asset_pattern", item->asset_pattern, sizeof(item->asset_pattern));
+        json_extract_string(p, end + 1, "extract_file", item->extract_file, sizeof(item->extract_file));
 
         int notes_result = json_extract_string_prefix(p, end + 1, "release_notes",
                                                      item->release_notes, sizeof(item->release_notes));
@@ -282,7 +350,8 @@ static int self_version_valid(const char *version) {
 }
 
 int repository_self_update_entry_valid(const RepoPayload *entry, const char *source_url) {
-    if (!entry || !is_pldmgr_official_source(source_url) || strcmp(entry->id, "pldmgr") ||
+    /* Catalog self-updates are official builds; other channels must not take them. */
+    if (!entry || !channel_is_official() || !is_pldmgr_official_source(source_url) || strcmp(entry->id, "pldmgr") ||
         !is_pldmgr_name(entry->filename) || strchr(entry->filename, '/') ||
         strchr(entry->filename, '\\') || strstr(entry->filename, "..") ||
         !self_version_valid(entry->version) || !entry->checksum[0] ||

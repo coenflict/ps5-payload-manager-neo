@@ -28,6 +28,7 @@ jobs:
           python3 tests/run_config_tests.py --thread-sanitize
           python3 tests/run_autoload_tests.py --thread-sanitize
           python3 tests/run_log_stream_tests.py --thread-sanitize
+          python3 tests/run_updater_tests.py --thread-sanitize
 
   frontend:
     runs-on: ubuntu-latest

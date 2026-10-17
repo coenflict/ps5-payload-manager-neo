@@ -37,6 +37,7 @@ export function getRouteFromHash(hash) {
   if (rawPath === 'settings') return { type: 'settings', ...extra }
   if (rawPath === 'donate') return { type: 'donate', ...extra }
   if (rawPath === 'sources') return { type: 'sources', ...extra }
+  if (rawPath === 'updates') return { type: 'updates', ...extra }
 
   if (rawPath === 'move-from-usb' || rawPath === 'move_from_usb') {
     const path = queryParams.get('path') || null
@@ -67,6 +68,7 @@ export function formatHash(route) {
   else if (route.type === 'settings') base = '#/settings'
   else if (route.type === 'donate') base = '#/donate'
   else if (route.type === 'sources') base = '#/sources'
+  else if (route.type === 'updates') base = '#/updates'
   else if (route.type === 'move_from_usb') {
     base = '#/move-from-usb'
   }
@@ -123,7 +125,7 @@ export function getHistoryChain(route) {
   delete baseRoute.mode
 
   let chain = []
-  if (baseRoute.type === 'sources') {
+  if (baseRoute.type === 'sources' || baseRoute.type === 'updates') {
     chain = [
       { type: 'dashboard' },
       { type: 'settings' },
@@ -693,9 +695,9 @@ export function useHistoryNavigation({
 
     if (prevView === 'dashboard') {
       writeHistory(route, false)
-    } else if (newView === 'sources' || newView === 'move_from_usb') {
+    } else if (newView === 'sources' || newView === 'updates' || newView === 'move_from_usb') {
       writeHistory(route, false)
-    } else if (prevView === 'sources' && newView === 'settings') {
+    } else if ((prevView === 'sources' || prevView === 'updates') && newView === 'settings') {
       if (window.history && window.history.length > 1) {
         window.history.back()
         return

@@ -55,7 +55,8 @@ export default defineConfig({
       '/sources_remove': { target: 'http://127.0.0.1:8081', changeOrigin: false },
       '/repository_payloads': { target: 'http://127.0.0.1:8081', changeOrigin: false },
       '/repository_refresh': { target: 'http://127.0.0.1:8081', changeOrigin: false },
-      '/repository_install': { target: 'http://127.0.0.1:8081', changeOrigin: false }
+      '/repository_install': { target: 'http://127.0.0.1:8081', changeOrigin: false },
+      '/updates_': { target: 'http://127.0.0.1:8081', changeOrigin: false }
     }
   }
 })

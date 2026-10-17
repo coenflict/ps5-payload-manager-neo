@@ -27,6 +27,9 @@
 #include "app_installer.h"
 #include "process_mgr.h"
 #include "log_server.h"
+#include "updater.h"
+#include "boot_guard.h"
+#include "channel.h"
 
 #define DEFAULT_PORT MENU_PORT
 
@@ -67,7 +70,9 @@ int main(int argc, char *argv[]) {
 
     syscall(SYS_thr_set_name, -1, "pldmgr.elf");
 
+    int replaced_instance = 0;
     while ((pid = process_find_pid("pldmgr.elf")) > 0) {
+        replaced_instance = 1;
         if (kill(pid, SIGKILL)) {
             pldmgr_log("[PLDMGR] kill failed for pid %d\n", pid);
             break;
@@ -86,12 +91,20 @@ int main(int argc, char *argv[]) {
     /* Run one-time migration to layout v2 if needed */
     slot_migrate_legacy();
 
+    /* An updated payload that took the console down last boot is restored
+     * before anything is launched. A replaced running instance means no crash. */
+    int restored = boot_guard_evaluate(replaced_instance);
+    if (restored) pldmgr_log("[PLDMGR] Boot guard restored %d payload(s).\n", restored);
+
     /* The loader transfer may encounter a closed socket before services start. */
     signal(SIGPIPE, SIG_IGN);
     char update_path[1024], update_version[64];
-    if (repository_check_self_update(update_path, sizeof(update_path), update_version, sizeof(update_version))) {
+    pldmgr_log("[PLDMGR] Update channel: %s\n", channel_repo());
+    if (channel_select_handoff(update_path, sizeof(update_path), update_version, sizeof(update_version))) {
         pldmgr_log("[PLDMGR] Handing off to self-update %s\n", update_version);
+        channel_record_attempt(update_version);
         if (ps5_launch_self_update(update_path) == 0) return 0;
+        channel_clear_attempt();
         pldmgr_log("[PLDMGR] Self-update handoff failed; continuing startup.\n");
     }
 
@@ -137,9 +150,11 @@ int main(int argc, char *argv[]) {
     }
 
     pldmgr_log("[PLDMGR] Server is running. Visit /shutdown to exit.\n");
+    channel_mark_healthy();
 
-    /* Try cache refresh */
-    repository_ensure_fresh(0);
+    /* Catalog refresh and update checks run in the background; autoload waits
+     * per entry (bounded by the update budget) instead of blocking startup. */
+    updater_start(1);
 
     /* Startup Notification - Only show if browser autostart is off */
     char current_ip[64] = "unknown";
@@ -167,6 +182,7 @@ int main(int argc, char *argv[]) {
     int network_check_timer = 0;
     while (http_keep_running) {
         usleep(100000); /* 100ms sleep */
+        boot_guard_tick();
 
         /* Immediate Wake-up Recovery */
         if (resume_flag) {
@@ -250,6 +266,7 @@ int main(int argc, char *argv[]) {
     }
 
     pldmgr_log("[PLDMGR] Shutting down...\n");
+    updater_cancel();
     pldmgr_autoload_stop();
 
     if (daemon)

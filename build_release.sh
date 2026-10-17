@@ -12,7 +12,7 @@ fi
 OUTPUT_ELF="pldmgr_v${VERSION}.elf"
 IMAGE_NAME="ps5-payload-sdk-pldmgr"
 
-echo "--- Building Payload Manager v$VERSION ---"
+echo "--- Building Payload Manager v$VERSION (update channel: ${PLDMGR_UPDATE_REPO:-default}) ---"
 
 # 2. Build React Frontend (on Host)
 echo "[1/3] Building React Frontend..."
@@ -36,7 +36,9 @@ fi
 
 # 3. Build native ELF via Docker
 echo "[2/3] Building native ELF via Docker..."
-docker run --rm -v "$(pwd)":/src -w /src $IMAGE_NAME make clean all > /dev/null 2>&1
+# PLDMGR_UPDATE_REPO (owner/repo) selects the self-update channel; empty keeps
+# the default from include/pldmgr.h.
+docker run --rm -v "$(pwd)":/src -w /src $IMAGE_NAME make clean all PLDMGR_UPDATE_REPO="${PLDMGR_UPDATE_REPO:-}" > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
     echo "      !!! ELF build FAILED!"
