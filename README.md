@@ -77,7 +77,7 @@ Payload Manager by default. To start Neo instead, place it in a
 └── pldmgr.elf       ← the Neo release, renamed
 ```
 
-You can put the folder there with a file manager payload, or copy it from a
+You can put the folder there from your computer with [ps5upload](https://github.com/phantomptr/ps5upload), or copy it from a
 USB drive. Step-by-step instructions for both:
 [AUTO_UPDATES.md → One-time setup](AUTO_UPDATES.md#one-time-setup-with-webkit-autoloader).
 After that, Neo keeps itself and your payloads current.
