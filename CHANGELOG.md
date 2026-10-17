@@ -1,4 +1,12 @@
-## v0.7.0
+# Changelog
+
+# Payload Manager Neo
+
+Releases of this fork: [coenflict/ps5-payload-manager-neo](https://github.com/coenflict/ps5-payload-manager-neo/releases).
+
+## Neo v0.7.0
+
+First release of Payload Manager Neo, based on PS5 Payload Manager v0.6.1 by PLK.
 
 ### 🚀 Features & UX Improvements
 - **Automatic payload updates before launch**: at startup each autoload payload is checked against its maintainer's release (GitHub, Gitea/Forgejo) and the catalog; a verified newer version is installed into the same slot before that entry launches. Offline, failing or slow sources fall back to the installed payload within a configurable budget.
@@ -11,6 +19,10 @@
 - **Fork-safe self-updates**: builds embed their release channel; handoffs and downloads are limited to the same channel, and a build that fails to start is skipped.
 - Catalog refresh no longer blocks startup; it runs in the update worker.
 - GitHub requests are conditional (ETag) and back off on rate limits and unreachable hosts.
+
+# PS5 Payload Manager (original project by PLK)
+
+The history below belongs to the original [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager), which Neo is based on. Issue and pull request links refer to that project.
 
 ## v0.6.1
 

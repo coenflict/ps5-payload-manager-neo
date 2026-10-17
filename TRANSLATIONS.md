@@ -31,6 +31,8 @@ Native-speaker wording review and console layout testing remain useful.
 
 If you find any inaccurate, unnatural, or missing translations, we welcome your feedback!
 
+Most texts come from the original [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager) by PLK; corrections to those help both projects there. Texts of Neo's own screens (Settings → Automatic Updates) are translated only for English and Dutch so far; report or contribute those in [Payload Manager Neo](https://github.com/coenflict/ps5-payload-manager-neo/issues/new).
+
 Please [open a new Issue](https://github.com/itsPLK/ps5-payload-manager/issues/new) and describe:
 1. The language and the screen/button where the text appears.
 2. The current translation.

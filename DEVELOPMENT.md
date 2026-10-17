@@ -1,6 +1,9 @@
 # Development
 
-This document describes how to build and deploy the **Payload Manager**.
+This document describes how to build and deploy **Payload Manager Neo**, a fork
+of [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager) by PLK.
+Build steps are unchanged from the original project; Neo's own update modules
+are described under [Automatic updates](#automatic-updates).
 
 ## How to Build
 
@@ -400,7 +403,7 @@ runs in.
 
 ## Payload Manager self-updates
 
-Builds whose channel is `itsPLK/ps5-payload-manager` keep the legacy mechanism
+Builds whose channel is `itsPLK/ps5-payload-manager` (the original project) keep the legacy mechanism
 below. Other channels never use it: they ignore the official catalog's
 `pldmgr` entry and legacy update files, and update from their own GitHub
 releases into `/data/pldmgr/self/` (see [AUTO_UPDATES.md](AUTO_UPDATES.md#payload-manager-self-updates)).
