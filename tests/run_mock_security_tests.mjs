@@ -27,7 +27,8 @@ try {
   for (const route of ['/repository_cache_clear', '/abort', '/autoload_clear', '/repository_refresh', '/repository_install?id=test',
     '/sources_add?url=http://evil.invalid', '/sources_remove?index=1', '/manage:delete?slot=local/test',
     '/loadpayload:local/test', '/process_kill?pid=123', '/usb_move_perform?path=test', '/shutdown',
-    '/set_config', '/sources_set', '/manage:upload?filename=test.elf']) {
+    '/set_config', '/sources_set', '/manage:upload?filename=test.elf', '/updates_check', '/updates_apply?slot=local/test',
+    '/updates_rollback?slot=local/test', '/updates_settings']) {
     assert.equal((await request(route)).status, 405, route)
     assert.equal((await request(route, { method: 'POST', headers: { Origin: 'http://evil.invalid', 'X-PLDMGR-Request': '1' } })).status, 403, route)
   }

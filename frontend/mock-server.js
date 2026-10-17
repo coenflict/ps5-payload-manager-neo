@@ -325,6 +325,50 @@ app.get('/usb_move_check', (req, res) => res.json({
 }));
 app.post('/usb_move_perform', (req, res) => res.json({ ok: true, message: 'Mock import complete' }));
 
+// Automatic updates: in-memory fixture mirroring the native /updates_* contract.
+const updates = {
+  enabled: true, budget: 20, self_update: true, running: false, last_run: Math.floor(Date.now() / 1000), network: 'online',
+  channel: { repo: 'coenflict/ps5-payload-manager', official: false, running: '0.7.0', pending: '', latest: 'v0.7.0', state: 'current', message: 'Up to date' },
+  items: [
+    { slot: 'repo/kstuff-lite@46730479', name: 'kstuff-lite', kind: 'repo', installed: 'v1.11', latest: 'v2.0', source: 'upstream',
+      upstream: 'EchoStretch/kstuff-lite', pattern: 'kstuff.elf', state: 'approval', message: 'Major version change to v2.0; approve to install',
+      autoload: true, policy: 'safe', prerelease: false, unverified: false, repo: '', asset: '', skip: '', has_previous: true, previous: 'v1.10' },
+    { slot: 'repo/etahen@46730479', name: 'etaHEN', kind: 'repo', installed: '2.5B', latest: '', source: '',
+      upstream: 'etaHEN/etaHEN', pattern: 'etaHEN-*.bin', state: 'current', message: '',
+      autoload: true, policy: 'safe', prerelease: false, unverified: false, repo: '', asset: '', skip: '', has_previous: false, previous: '' },
+    { slot: 'local/my-tool', name: 'my_tool.elf', kind: 'local', installed: '', latest: '', source: '',
+      upstream: '', pattern: '', state: 'untracked', message: 'No update source; set an upstream repository to track it',
+      autoload: false, policy: 'safe', prerelease: false, unverified: false, repo: '', asset: '', skip: '', has_previous: false, previous: '' },
+  ],
+};
+app.get('/updates_status', (req, res) => res.json(updates));
+app.post('/updates_check', (req, res) => {
+  updates.last_run = Math.floor(Date.now() / 1000);
+  res.json({ ok: true, started: true });
+});
+app.post('/updates_settings', (req, res) => {
+  const body = req.body || {};
+  for (const key of ['enabled', 'budget', 'self_update']) if (key in body) updates[key] = body[key];
+  for (const [slot, changes] of Object.entries(body.payloads || {})) {
+    const item = updates.items.find(entry => entry.slot === slot);
+    if (item && changes) Object.assign(item, changes);
+  }
+  res.send('OK');
+});
+app.post('/updates_apply', (req, res) => {
+  const item = updates.items.find(entry => entry.slot === req.query.slot);
+  if (!item || !item.latest) return res.status(400).json({ ok: false, message: 'No update available; check for updates first' });
+  item.previous = item.installed; item.has_previous = true; item.installed = item.latest; item.latest = ''; item.state = 'updated';
+  res.json({ ok: true, message: `Updated ${item.previous} → ${item.installed}` });
+});
+app.post('/updates_rollback', (req, res) => {
+  const item = updates.items.find(entry => entry.slot === req.query.slot);
+  if (!item || !item.has_previous) return res.status(400).json({ ok: false, message: 'No previous version to restore' });
+  [item.installed, item.previous] = [item.previous, item.installed];
+  item.skip = item.previous; item.state = 'current';
+  res.json({ ok: true, message: `Restored ${item.installed}` });
+});
+
 app.get('/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

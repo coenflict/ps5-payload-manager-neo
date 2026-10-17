@@ -3,6 +3,7 @@ export const mutationRoutes = [
   '/manage:upload', '/manage:delete', '/shutdown', '/set_config', '/abort',
   '/autoload_clear', '/repository_cache_clear', '/repository_refresh', '/repository_install', '/sources_set',
   '/sources_add', '/sources_remove', '/usb_move_perform', '/process_kill',
+  '/updates_check', '/updates_apply', '/updates_rollback', '/updates_settings',
 ]
 export function isMutationRoute(path) {
   return mutationRoutes.includes(path) || path.startsWith('/loadpayload:')

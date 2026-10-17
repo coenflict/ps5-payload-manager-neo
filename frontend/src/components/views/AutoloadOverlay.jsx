@@ -87,7 +87,8 @@ const AutoloadOverlay = ({ status, items = [], itemsLoading = false, onCancel, o
               </h2>
               <p className="text-sm md:text-base text-zinc-400">
                 {isDone ? (!hasIssues ? t('autoload_overlay.all_loaded', 'All payloads loaded') : null)
-                  : isCountdown ? t('autoload_overlay.waiting', 'Waiting for manual abort...') : t('autoload_overlay.loading', 'Loading Payloads...')}
+                  : isCountdown ? t('autoload_overlay.waiting', 'Waiting for manual abort...')
+                    : status.updating ? t('autoload_overlay.updating', 'Checking for payload updates...') : t('autoload_overlay.loading', 'Loading Payloads...')}
               </p>
             </div>
             {isDone ? (
