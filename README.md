@@ -1,57 +1,111 @@
 <p align="center">
  <img src="./assets/icon0.png" width="128" />
 </p>
-<h1 align="center">PS5 Payload Manager</h1>
+<h1 align="center">PS5 Payload Manager Neo</h1>
 
-<p align="center">A modern, web-based dashboard to easily manage, import, and automatically load payloads on your PS5.</p>
-
+<p align="center">A self-maintaining payload manager for jailbroken PS5 consoles:<br>launch your jailbreak, and your payloads are updated, verified and started for you.</p>
 
 <p align="center">
  <img src="./pldmgr_screenshot.png" width="600" />
 </p>
 
-## Features
-- **Web-Based Interface**: A modern dashboard to manage payloads from your PC, phone, or the PS5 itself.
-- **Import Payloads**: Easily add new payloads from a USB drive or download them from the cloud repository.
-- **Automated Startup**: Set up a list of payloads to load automatically whenever you start the manager.
-- **Automatic Updates**: Before each autoload payload starts, the newest verified release from its maintainer (or the catalog) is installed — with policies, rollback, a crash guard and offline fallback. See [AUTO_UPDATES.md](AUTO_UPDATES.md).
-- **Fork-safe Self-Updates**: The manager updates itself only from its own release channel, so a custom build is never replaced by another build.
-- **Home Screen Shortcut**: Installs a dedicated "Payload Manager" app icon to your PS5 home screen for quick access.
-- **Favorites and Process Management**: Keep favorite payloads at hand, inspect active processes, and terminate eligible processes.
+> **Payload Manager Neo is an independent fork**, maintained by
+> [coenflict](https://github.com/coenflict). It is based on
+> [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager) by
+> [PLK](https://github.com/itsPLK), whose work provides the dashboard, payload
+> storage, repositories and autoload that Neo builds on. The features listed
+> under [What Neo adds](#what-neo-adds) exist **only in Neo**, not in the
+> original Payload Manager. Please report problems with Neo
+> [here](https://github.com/coenflict/ps5-payload-manager-neo/issues), not to
+> the original project.
 
+## What Neo adds
+
+- **Updates before every launch.** At each start, every payload in your
+  autoload list is checked against its maintainer's own release (GitHub,
+  Gitea/Forgejo) and the curated catalog. A newer verified version is installed
+  before that payload starts, so updates apply to the current boot, not the next
+  one.
+- **Never blocks a working setup.** No network, a source that is down, a failed
+  download or a slow check (bounded by a time budget you choose) simply means
+  the installed version is launched.
+- **Verified downloads.** Updates must match the published SHA-256 checksum and
+  be real PS5 (x86-64 ELF) payloads.
+- **Control per payload.** *Safe* (major versions need your approval),
+  *Automatic*, *Notify only* or *Off*; prereleases only when you opt in; your
+  own upstream repository and release-file pattern when needed.
+- **Rollback and crash guard.** The previous version is kept for one-click
+  restore. If an updated payload was being launched when the console went down,
+  the next start restores the previous version automatically.
+- **Keeps itself up to date — as Neo.** Neo updates only from Neo's own
+  releases. It never switches to the original Payload Manager or another fork,
+  and skips a new build that fails to start.
+- **Automatic Updates screen** in Settings, showing what was checked, updated,
+  held back or failed.
+
+All details are in [AUTO_UPDATES.md](AUTO_UPDATES.md).
+
+## Features from the original Payload Manager
+
+Inherited from [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager) by PLK:
+
+- **Web-Based Interface**: A modern dashboard to manage payloads from your PC, phone, or the PS5 itself.
+- **Import Payloads**: Add payloads from a USB drive or download them from the cloud repository.
+- **Automated Startup**: A list of payloads to load automatically whenever the manager starts.
+- **Home Screen Shortcut**: Installs a launcher app to your PS5 home screen (shown as *Payload Manager Neo*).
+- **Favorites and Process Management**: Keep favorite payloads at hand, inspect active processes, and terminate eligible processes.
+- **Custom Repositories**: Add third-party payload repositories ([guide](CUSTOM_REPOSITORIES.md)).
+- **Translations**: The interface is available in many languages ([TRANSLATIONS.md](TRANSLATIONS.md)).
 
 ## Installation
 
-### Using an Autoloader (Recommended)
-It is highly recommended to use **Payload Manager** together with an **Autoloader**:
+Download `pldmgr_vX.Y.Z.elf` from this repository's
+[Releases](https://github.com/coenflict/ps5-payload-manager-neo/releases) page.
 
-[Y2JB](https://github.com/itsPLK/ps5-y2jb-autoloader) | [BD-JB](https://github.com/itsPLK/ps5-bdjb-autoloader) | [Lua](https://github.com/itsPLK/ps5-lua-autoloader)
+### With WebKit Autoloader (recommended)
 
-`pldmgr.elf` is already included as the default payload in the latest versions of the Autoloaders linked above.
+The autoloaders by PLK ([WebKit](https://github.com/itsPLK/ps5-webkit-autoloader),
+[Y2JB](https://github.com/itsPLK/ps5-y2jb-autoloader),
+[BD-JB](https://github.com/itsPLK/ps5-bdjb-autoloader),
+[Lua](https://github.com/itsPLK/ps5-lua-autoloader)) start the *original*
+Payload Manager by default. To start Neo instead, place it in a
+`ps5_autoloader` folder once:
 
-If you are using an older version and don't want to update the entire autoloader, you can simply:
-1. Place `pldmgr.elf` into your `autoload` directory.
-2. Add `pldmgr.elf` as the only entry in your `autoload.txt` config file.
+```text
+/data/ps5_autoloader/
+├── autoload.txt     ← contains one line: pldmgr.elf
+└── pldmgr.elf       ← the Neo release, renamed
+```
 
-### Standalone / Manual Loading
-You can also manually load the manager like any other `.elf` file. Grab the latest version from the [Releases](https://github.com/itsPLK/ps5-payload-manager/releases) page.
+You can put the folder there with a file manager payload, or copy it from a
+USB drive. Step-by-step instructions for both:
+[AUTO_UPDATES.md → One-time setup](AUTO_UPDATES.md#one-time-setup-with-webkit-autoloader).
+After that, Neo keeps itself and your payloads current.
 
-### Running this fork with WebKit Autoloader
-Place this build in `/data/ps5_autoloader/` with an `autoload.txt` that lists `pldmgr.elf`; it then keeps itself and your payloads updated. The one-time steps are in [AUTO_UPDATES.md](AUTO_UPDATES.md#one-time-setup-with-webkit-autoloader).
+### Manual loading
 
-## Custom Repositories
-You can add third-party payload repositories to the manager. To learn how to create your own repository JSON and host it, see the [Custom Repositories Guide](CUSTOM_REPOSITORIES.md).
+You can also send the ELF to an ELF loader on port 9021 like any other payload.
 
-## Translations
-PS5 Payload Manager supports multiple languages. For the list of supported languages, how to report translation issues or suggest improvements, and past community translators, see [TRANSLATIONS.md](TRANSLATIONS.md).
+## Documentation
+
+- [AUTO_UPDATES.md](AUTO_UPDATES.md) — Neo's automatic updates, setup and limitations
+- [CUSTOM_REPOSITORIES.md](CUSTOM_REPOSITORIES.md) — hosting your own payload catalog
+- [TRANSLATIONS.md](TRANSLATIONS.md) — languages and translation help
+- [DEVELOPMENT.md](DEVELOPMENT.md) — building, testing and deploying
+- [CHANGELOG.md](CHANGELOG.md) — Neo releases and the original project's history
 
 ## Credits
-- [John Törnblom](https://github.com/john-tornblom) - for the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) and homebrew samples used as reference.
-- [All contributors](https://github.com/itsPLK/ps5-payload-manager/graphs/contributors) - for their contributions to the project.
+
+- [PLK](https://github.com/itsPLK) — author of [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager), on which Neo is based, the autoloaders and the payloads mirror.
+- [Contributors to PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager/graphs/contributors).
+- [John Törnblom](https://github.com/john-tornblom) — for the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) and homebrew samples used as reference.
 - Everyone else contributing to the PS5 homebrew scene.
 
 ## Donations
-If you'd like to support my work, please check out the [DONATE.md](DONATE.md) file.
 
-## Development
-For build instructions and deployment details, see [DEVELOPMENT.md](DEVELOPMENT.md).
+The donation page in the app and [DONATE.md](DONATE.md) support PLK, the
+author of the original Payload Manager.
+
+## License
+
+Neo keeps the license of the original project; see [LICENSE](LICENSE).

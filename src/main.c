@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
         sleep(1);
     }
 
-    pldmgr_log("[PLDMGR] Starting Payload Manager v%s on port %d...\n",
+    pldmgr_log("[PLDMGR] Starting " PRODUCT_NAME " v%s on port %d...\n",
                pldmgr_version_sig + 11, port);
 
     if (slot_storage_recover() != 0) {
@@ -162,10 +162,10 @@ int main(int argc, char *argv[]) {
 
     if (!cfg.auto_browser_open) {
         if (strcmp(current_ip, "unknown") != 0) {
-            pldmgr_notify("Payload Manager v%s\nIP: %s\nPort: %d", MENU_VERSION,
+            pldmgr_notify(PRODUCT_NAME " v%s\nIP: %s\nPort: %d", MENU_VERSION,
                           current_ip, port);
         } else {
-            pldmgr_notify("Payload Manager v%s\nWaiting for Network...", MENU_VERSION);
+            pldmgr_notify(PRODUCT_NAME " v%s\nWaiting for Network...", MENU_VERSION);
         }
     }
 

@@ -44,6 +44,8 @@
 #define ROUTE_UPDATES_ROLLBACK "/updates_rollback"
 #define ROUTE_UPDATES_SETTINGS "/updates_settings"
 
+/* Payload Manager Neo: a fork of PS5 Payload Manager by PLK. */
+#define PRODUCT_NAME "Payload Manager Neo"
 #define MENU_VERSION "0.7.0"
 #define AUTOLOAD_CONFIG_PATH "/data/pldmgr/autoload.txt"
 #define FAVORITES_CONFIG_PATH "/data/pldmgr/favorites.txt"
@@ -68,7 +70,7 @@
  * off to, or install, a manager carrying the same channel marker. Override
  * with `make PLDMGR_UPDATE_REPO=owner/repo`; release CI uses its repository. */
 #ifndef PLDMGR_UPDATE_REPO
-#define PLDMGR_UPDATE_REPO "coenflict/ps5-payload-manager"
+#define PLDMGR_UPDATE_REPO "coenflict/ps5-payload-manager-neo"
 #endif
 
 /* Logging (implementation in log_server.c) */

@@ -1,6 +1,11 @@
-# Automatic Updates
+# Automatic Updates (Payload Manager Neo)
 
-Payload Manager keeps the payloads it launches current by itself. At every
+> This feature exists only in **Payload Manager Neo**, the fork maintained at
+> [coenflict/ps5-payload-manager-neo](https://github.com/coenflict/ps5-payload-manager-neo).
+> The original [PS5 Payload Manager](https://github.com/itsPLK/ps5-payload-manager)
+> by PLK does not update payloads automatically.
+
+Neo keeps the payloads it launches current by itself. At every
 start it checks each payload in your autoload list against the release its
 maintainer published, installs a verified newer version into the same slot,
 and only then launches that entry. When there is no network, a source is down,
@@ -8,8 +13,8 @@ a download fails verification or the check takes too long, the version that is
 already installed is launched instead. Nothing on your PC is involved.
 
 ```
-WebKit Autoloader ─► jailbreak ─► Payload Manager (your build)
-                                   │ 1. newer build of *this* fork ready? → hand off
+WebKit Autoloader ─► jailbreak ─► Payload Manager Neo
+                                   │ 1. newer Neo build ready? → hand off
                                    │ 2. HTTP server + browser start
                                    │ 3. update worker ──────────────┐
                                    │ 4. autoload countdown           │ catalog refresh
@@ -44,7 +49,7 @@ answer without any request.
 
 ## Where versions come from
 
-For each payload Payload Manager compares two sources and takes the highest
+For each payload Neo compares two sources and takes the highest
 acceptable version:
 
 | Source | How it is found | Integrity |
@@ -111,10 +116,11 @@ Every build embeds the GitHub repository whose releases may update it
 (`PLDMGR_CHANNEL:<owner/repo>`). A build only hands off to, or downloads, a
 manager carrying the **same** channel marker:
 
-- this fork follows `coenflict/ps5-payload-manager` releases and ignores
-  official builds — including official update files already on the console and
-  the official catalog's `pldmgr` entry;
-- official builds carry no marker, so they never pick up a fork build either.
+- Neo follows `coenflict/ps5-payload-manager-neo` releases and ignores builds of
+  the original Payload Manager — including its update files already on the
+  console and the `pldmgr` entry in the original payload catalog;
+- original Payload Manager builds carry no marker, so they never pick up a Neo
+  build either.
 
 New manager releases are downloaded in the background (SHA-256 digest, embedded
 version and channel must all match) into `/data/pldmgr/self/` and start the next
@@ -124,54 +130,85 @@ version.
 
 ## One-time setup with WebKit Autoloader
 
-WebKit Autoloader runs the *unified autoloader*, which launches the official
-Payload Manager embedded in it unless it finds an `autoload.txt`. To run this
-fork instead:
+WebKit Autoloader runs the *unified autoloader*, which starts the original
+Payload Manager built into it — unless it finds a `ps5_autoloader` folder with
+an `autoload.txt`. Neo is started by putting it in that folder once.
 
-1. **Publish a release of the fork.** On GitHub open *Actions → Release
-   On-Demand → Run workflow*. It builds `pldmgr_vX.Y.Z.elf` with the update
-   channel set to the repository it runs in, and attaches it to release
-   `vX.Y.Z`. (For later releases, bump `MENU_VERSION` in `include/pldmgr.h`
-   first; the workflow refuses to overwrite an existing tag.)
-2. **Install the bootstrap copy.** Download that ELF, rename it to
-   `pldmgr.elf`, and put it on a USB drive like this:
+### 1. Get the Neo file
 
-   ```text
-   USB root/
-   └── ps5_autoloader/
-       ├── autoload.txt
-       └── pldmgr.elf
-   ```
+Download `pldmgr_vX.Y.Z.elf` from the
+[Releases](https://github.com/coenflict/ps5-payload-manager-neo/releases) page
+and rename it to **`pldmgr.elf`**. Also create a plain text file named
+**`autoload.txt`** containing this single line:
 
-   with `autoload.txt` containing:
+```text
+pldmgr.elf
+```
 
-   ```text
-   @sync
-   pldmgr.elf
-   ```
+Both names are case-sensitive. (Maintainers: a release is published with
+*Actions → Release On-Demand → Run workflow*; bump `MENU_VERSION` in
+`include/pldmgr.h` before each new one.)
 
-   Launch WebKit Autoloader once with the drive inserted. After the manager has
-   started, `@sync` moves the folder to `/data/ps5_autoloader/` and removes it
-   from the USB drive. (Without `@sync` support in your autoloader, copy the
-   folder to `/data/ps5_autoloader/` with an FTP payload, or leave the drive
-   inserted.)
-3. **Configure once in the web UI** (`http://<PS5-IP>:8084`):
-   - install your payloads from **Get Payloads**, so each one knows its source;
-     replace payloads you uploaded manually, or set their upstream repository
-     under *Automatic Updates → Advanced*;
-   - put them in order under **Autoload** (delays such as `!4000` still work)
-     and enable it;
-   - review the policies under **Settings → Automatic Updates**.
+### 2. Put both files in `/data/ps5_autoloader/` — choose one way
 
-From then on the flow is: launch WebKit Autoloader → jailbreak → this manager
-→ (newer manager build? hand off) → payload updates → your sequence.
+**A. With a file manager payload (no USB needed).**
 
-The bootstrap copy in `/data/ps5_autoloader/` never needs to change; newer
-builds are picked up from `/data/pldmgr/self/`. Replacing the bootstrap copy
-occasionally saves the short handoff (about a second) at each start.
+1. Launch WebKit Autoloader as usual; the original Payload Manager starts.
+2. In **Get Payloads**, install and launch a file manager payload with upload
+   support, for example **ps5-web-file-manager** or **BFpilot**.
+3. Open the file manager's web page from your phone or PC, go to `/data`,
+   create the folder `ps5_autoloader`, and upload `pldmgr.elf` and
+   `autoload.txt` into it.
 
-To return to the official manager, delete `/data/ps5_autoloader/` (or its
-`autoload.txt`). Your payloads, autoload list and settings are shared.
+The upload button of Payload Manager itself does not work for this: it stores
+files in its own payload library, not in `/data/ps5_autoloader/`. An FTP payload
+(ftpsrv, zftpd) works the same way as a file manager.
+
+**B. With a USB drive.** Put the folder on the drive:
+
+```text
+USB root/
+└── ps5_autoloader/
+    ├── autoload.txt
+    └── pldmgr.elf
+```
+
+and add `@sync` as the *first* line of `autoload.txt`:
+
+```text
+@sync
+pldmgr.elf
+```
+
+Launch WebKit Autoloader once with the drive inserted. After Neo has started,
+`@sync` moves the folder to `/data/ps5_autoloader/` and removes it from the
+drive. (If your autoloader version ignores `@sync`, use way A or keep the drive
+inserted.)
+
+### 3. Restart and configure once
+
+Launch WebKit Autoloader again: Neo now starts instead of the original. Open
+`http://<PS5-IP>:8084` and:
+
+- install your payloads from **Get Payloads**, so each one knows its source;
+  replace payloads you uploaded manually, or set their upstream repository
+  under *Automatic Updates → Advanced*;
+- put them in order under **Autoload** (delays such as `!4000` still work)
+  and enable it;
+- review the policies under **Settings → Automatic Updates**.
+
+Your existing payloads, autoload list and settings carry over: Neo uses the same
+storage as the original.
+
+From then on the flow is: launch WebKit Autoloader → jailbreak → Neo → (newer
+Neo build? hand off) → payload updates → your sequence.
+
+The copy in `/data/ps5_autoloader/` never needs to change; newer Neo builds are
+picked up from `/data/pldmgr/self/`. Replacing it occasionally saves the short
+handoff (about a second) at each start.
+
+To go back to the original Payload Manager, delete `/data/ps5_autoloader/` (or
+its `autoload.txt`).
 
 ## Limitations
 

@@ -66,10 +66,10 @@ To create a repository, you must host a JSON file that conforms to the following
 | **`icon_key`** (item-level) | String | No | Key in the separate catalog’s `icons` map, up to 127 UTF-8 bytes. Multiple payloads can share one key. |
 | **`details_url`** (item-level) | String | No | URL to documentation or README markdown for the payload. |
 | **`release_notes`** (item-level) | String | No | Markdown release notes for this version. The backend field holds up to 2047 UTF-8 bytes, with UTF-8-safe truncation and an ellipsis when exceeded. This is a byte budget, not 2000 Unicode characters. |
-| **`source`** (item-level) | String | No | Link to the upstream source repository or releases page. A GitHub or Gitea/Forgejo repository here lets Payload Manager update the payload directly from its maintainer's releases (see [AUTO_UPDATES.md](AUTO_UPDATES.md)). |
-| **`source_direct`** (item-level) | String | No | Direct link to the upstream release asset this entry was built from. Its file name, with the version replaced by `*`, becomes the pattern used to find the same asset in newer upstream releases. |
-| **`asset_pattern`** (item-level) | String | No | Text that the upstream asset name must contain, to choose between several matching assets. |
-| **`extract_file`** (item-level) | String | No | Marks the upstream asset as an archive (the file inside it this entry ships). Such payloads update from the catalog only. |
+| **`source`** (item-level) | String | No | Link to the upstream source repository or releases page. In Payload Manager Neo, a GitHub or Gitea/Forgejo repository here lets the payload update directly from its maintainer's releases (see [AUTO_UPDATES.md](AUTO_UPDATES.md)). |
+| **`source_direct`** (item-level) | String | No | *(Used by Neo.)* Direct link to the upstream release asset this entry was built from. Its file name, with the version replaced by `*`, becomes the pattern used to find the same asset in newer upstream releases. |
+| **`asset_pattern`** (item-level) | String | No | *(Neo only.)* Text that the upstream asset name must contain, to choose between several matching assets. |
+| **`extract_file`** (item-level) | String | No | *(Neo only.)* Marks the upstream asset as an archive (the file inside it this entry ships). Such payloads update from the catalog only. |
 
 ---
 

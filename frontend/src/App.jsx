@@ -800,6 +800,7 @@ function App() {
                 <LogoIcon className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-white">PLDMGR</span>
+              <span className="text-xs font-black uppercase tracking-widest text-ps-blue bg-ps-blue/15 px-2 py-0.5 rounded-md">Neo</span>
             </div>
           </div>
 

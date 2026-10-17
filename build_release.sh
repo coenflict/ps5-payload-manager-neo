@@ -12,7 +12,7 @@ fi
 OUTPUT_ELF="pldmgr_v${VERSION}.elf"
 IMAGE_NAME="ps5-payload-sdk-pldmgr"
 
-echo "--- Building Payload Manager v$VERSION (update channel: ${PLDMGR_UPDATE_REPO:-default}) ---"
+echo "--- Building Payload Manager Neo v$VERSION (update channel: ${PLDMGR_UPDATE_REPO:-default}) ---"
 
 # 2. Build React Frontend (on Host)
 echo "[1/3] Building React Frontend..."
