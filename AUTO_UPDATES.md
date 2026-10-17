@@ -151,18 +151,22 @@ Both names are case-sensitive. (Maintainers: a release is published with
 
 ### 2. Put both files in `/data/ps5_autoloader/` — choose one way
 
-**A. With a file manager payload (no USB needed).**
+**A. With ps5upload from your computer (no USB needed).**
 
-1. Launch WebKit Autoloader as usual; the original Payload Manager starts.
-2. In **Get Payloads**, install and launch a file manager payload with upload
-   support, for example **ps5-web-file-manager** or **BFpilot**.
-3. Open the file manager's web page from your phone or PC, go to `/data`,
-   create the folder `ps5_autoloader`, and upload `pldmgr.elf` and
-   `autoload.txt` into it.
+1. On your computer, make a folder named `ps5_autoloader` containing
+   `pldmgr.elf` and `autoload.txt` (the single line `pldmgr.elf`).
+2. Launch WebKit Autoloader as usual; the original Payload Manager starts. In
+   **Get Payloads**, install and launch **ps5upload**. WebKit Autoloader's ELF
+   loader only accepts payloads sent from the console itself, so start the
+   helper this way rather than with the app's *Send payload* button.
+3. In the [ps5upload](https://github.com/phantomptr/ps5upload) app, enter the
+   6-digit code the console shows (only the first time) to pair.
+4. In ps5upload's file browser, upload the `ps5_autoloader` folder into
+   `/data`, so that `/data/ps5_autoloader/pldmgr.elf` and
+   `/data/ps5_autoloader/autoload.txt` exist.
 
-The upload button of Payload Manager itself does not work for this: it stores
-files in its own payload library, not in `/data/ps5_autoloader/`. An FTP payload
-(ftpsrv, zftpd) works the same way as a file manager.
+Payload Manager's own upload button does not work for this: it stores files in
+its payload library, not in `/data/ps5_autoloader/`.
 
 **B. With a USB drive.** Put the folder on the drive:
 
