@@ -43,9 +43,11 @@ const SettingRow = ({ title, description, children, icon: Icon, vertical }) => (
 
 const SettingsView = ({ config, onSaveConfig, setShowLogs, onNavigate, onClearCache }) => {
   const { t, i18n } = useTranslation()
+  const showDashboardIcons = config.SHOW_DASHBOARD_ICONS !== false
   const autoOpen = config.AUTO_BROWSER_OPEN !== false
   const killDiscPlayer = config.KILL_DISC_PLAYER_ON_STARTUP !== false
   const autoInstall = config.AUTO_INSTALL_APP !== false
+  const autoloadReturn = config.AUTOLOAD_RETURN_TO_DASHBOARD === true
   const autoloadDelay = config.AUTOLOAD_DELAY ?? 5
   const multiSources = config.MULTI_SOURCES_ENABLED === true
   const [followBrowserLanguage, setFollowBrowserLanguage] = useState(isFollowingBrowserLanguage)
@@ -130,6 +132,28 @@ const SettingsView = ({ config, onSaveConfig, setShowLogs, onNavigate, onClearCa
           </SettingRow>
 
           <SettingRow
+            title={t("settings.dashboard_icons_title", "Dashboard Payload Icons")}
+            description={t("settings.dashboard_icons_desc", "Show payload icons on the dashboard. Hiding them leaves more space for text.")}
+          >
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showDashboardIcons}
+              aria-label={t("settings.dashboard_icons_title", "Dashboard Payload Icons")}
+              onClick={() => onSaveConfig({ SHOW_DASHBOARD_ICONS: !showDashboardIcons })}
+              className={cn(
+                "w-14 h-7 md:w-20 md:h-10 rounded-full transition-all relative p-1 md:p-1.5",
+                showDashboardIcons ? "bg-ps-blue" : "bg-white/10"
+              )}
+            >
+              <div className={cn(
+                "w-5 h-5 md:w-7 md:h-7 bg-white rounded-full transition-all",
+                showDashboardIcons ? "translate-x-7 md:translate-x-10" : "translate-x-0"
+              )} />
+            </button>
+          </SettingRow>
+
+          <SettingRow
             title={t("settings.auto_open_title", "Auto-open Browser")}
             description={t("settings.auto_open_desc", "Automatically launch the browser when Payload Manager payload is executed.")}
           >
@@ -197,6 +221,28 @@ const SettingsView = ({ config, onSaveConfig, setShowLogs, onNavigate, onClearCa
               <div className={cn(
                 "w-5 h-5 md:w-7 md:h-7 bg-white rounded-full transition-all",
                 config.SCAN_USB_PAYLOADS ? "translate-x-7 md:translate-x-10" : "translate-x-0"
+              )} />
+            </button>
+          </SettingRow>
+
+          <SettingRow
+            title={t("settings.autoload_return_title", "Return After Autoload")}
+            description={t("settings.autoload_return_desc", "Automatically return to the dashboard 3 seconds after all payloads load successfully.")}
+          >
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoloadReturn}
+              aria-label={t("settings.autoload_return_title", "Return After Autoload")}
+              onClick={() => onSaveConfig({ AUTOLOAD_RETURN_TO_DASHBOARD: !autoloadReturn })}
+              className={cn(
+                "w-14 h-7 md:w-20 md:h-10 rounded-full transition-all relative p-1 md:p-1.5",
+                autoloadReturn ? "bg-ps-blue" : "bg-white/10"
+              )}
+            >
+              <div className={cn(
+                "w-5 h-5 md:w-7 md:h-7 bg-white rounded-full transition-all",
+                autoloadReturn ? "translate-x-7 md:translate-x-10" : "translate-x-0"
               )} />
             </button>
           </SettingRow>

@@ -16,10 +16,12 @@ static pthread_mutex_t config_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define CONFIG_LIMIT (64 * 1024)
 
 static const char *setting_keys[] = {"AUTOLOAD_ENABLED", "AUTO_BROWSER_OPEN",
-    "AUTOLOAD_DELAY", "SCAN_USB_PAYLOADS", "AUTO_INSTALL_APP", "MULTI_SOURCES_ENABLED", "KILL_DISC_PLAYER_ON_STARTUP"};
+    "AUTOLOAD_DELAY", "SCAN_USB_PAYLOADS", "AUTO_INSTALL_APP", "MULTI_SOURCES_ENABLED", "KILL_DISC_PLAYER_ON_STARTUP", "SHOW_DASHBOARD_ICONS", "AUTOLOAD_RETURN_TO_DASHBOARD"};
+enum { SETTING_COUNT = sizeof(setting_keys) / sizeof(setting_keys[0]),
+    AUTOLOAD_LIST_INDEX = SETTING_COUNT, FAVORITES_INDEX = SETTING_COUNT + 1 };
 
 static void defaults(PldmgrConfig *cfg) {
-    *cfg = (PldmgrConfig){.auto_browser_open=1, .autoload_delay=5, .auto_install_app=1, .kill_disc_player=1};
+    *cfg = (PldmgrConfig){.auto_browser_open=1, .autoload_delay=5, .auto_install_app=1, .kill_disc_player=1, .show_dashboard_icons=1};
 }
 static int read_config(PldmgrConfig *cfg) {
     defaults(cfg);
@@ -36,8 +38,8 @@ static int read_config(PldmgrConfig *cfg) {
         if (errno || *end || end == equal) continue;
         if (!strcmp(line, "LAST_REPOSITORY_UPDATE")) { if (value >= 0) cfg->last_repository_update = value; continue; }
         int *fields[] = {&cfg->autoload_enabled, &cfg->auto_browser_open, &cfg->autoload_delay,
-            &cfg->scan_usb_payloads, &cfg->auto_install_app, &cfg->multi_sources_enabled, &cfg->kill_disc_player};
-        for (size_t i = 0; i < 7; i++) if (!strcmp(line, setting_keys[i])) {
+            &cfg->scan_usb_payloads, &cfg->auto_install_app, &cfg->multi_sources_enabled, &cfg->kill_disc_player, &cfg->show_dashboard_icons, &cfg->autoload_return_to_dashboard};
+        for (size_t i = 0; i < SETTING_COUNT; i++) if (!strcmp(line, setting_keys[i])) {
             if (i == 2 ? value >= 0 && value <= 3600 : value == 0 || value == 1) *fields[i] = (int)value;
         }
     }
@@ -48,9 +50,9 @@ static int write_config(const PldmgrConfig *cfg) {
     char text[512];
     int length = snprintf(text, sizeof(text),
         "AUTOLOAD_ENABLED=%d\nLAST_REPOSITORY_UPDATE=%ld\nAUTO_BROWSER_OPEN=%d\n"
-        "AUTOLOAD_DELAY=%d\nSCAN_USB_PAYLOADS=%d\nAUTO_INSTALL_APP=%d\nMULTI_SOURCES_ENABLED=%d\nKILL_DISC_PLAYER_ON_STARTUP=%d\n",
+        "AUTOLOAD_DELAY=%d\nSCAN_USB_PAYLOADS=%d\nAUTO_INSTALL_APP=%d\nMULTI_SOURCES_ENABLED=%d\nKILL_DISC_PLAYER_ON_STARTUP=%d\nSHOW_DASHBOARD_ICONS=%d\nAUTOLOAD_RETURN_TO_DASHBOARD=%d\n",
         !!cfg->autoload_enabled, cfg->last_repository_update, !!cfg->auto_browser_open,
-        cfg->autoload_delay, !!cfg->scan_usb_payloads, !!cfg->auto_install_app, !!cfg->multi_sources_enabled, !!cfg->kill_disc_player);
+        cfg->autoload_delay, !!cfg->scan_usb_payloads, !!cfg->auto_install_app, !!cfg->multi_sources_enabled, !!cfg->kill_disc_player, !!cfg->show_dashboard_icons, !!cfg->autoload_return_to_dashboard);
     if (length < 0 || (size_t)length >= sizeof(text) || ensure_dir_recursive(BASE_DATA_DIR)) return -1;
     char *old = NULL; size_t size = 0;
     if (read_file_text(PLDMGR_CONFIG_PATH, &old, &size) && errno != ENOENT) return -1;
@@ -65,7 +67,7 @@ static int write_config(const PldmgrConfig *cfg) {
         if (!end) end = old + size;
         size_t n = (size_t)(end - line);
         int known = n >= 23 && !memcmp(line, "LAST_REPOSITORY_UPDATE=", 23);
-        for (size_t i = 0; i < 7; i++) {
+        for (size_t i = 0; i < SETTING_COUNT; i++) {
             size_t k = strlen(setting_keys[i]);
             if (n > k && !memcmp(line, setting_keys[i], k) && line[k] == '=') known = 1;
         }
@@ -165,7 +167,7 @@ static int save_csv(const char *path, const char *csv) {
     if (csv_lines(csv, lines, sizeof(lines)) || ensure_dir_recursive(BASE_DATA_DIR)) return -1;
     return write_file_text(path, lines, strlen(lines));
 }
-typedef struct { unsigned seen; int values[7]; char autoload[LIST_CAPACITY], favorites[LIST_CAPACITY]; } Update;
+typedef struct { unsigned seen; int values[SETTING_COUNT]; char autoload[LIST_CAPACITY], favorites[LIST_CAPACITY]; } Update;
 static int favorite_item(const char *start, const char *end, void *context) {
     Update *update = context;
     char item[LIST_CAPACITY];
@@ -178,10 +180,10 @@ static int favorite_item(const char *start, const char *end, void *context) {
 static int update_member(const char *key, const char *start, const char *end, void *context) {
     Update *update = context;
     size_t index = 0;
-    for (; index < 7; index++) if (!strcmp(key, setting_keys[index])) break;
-    if (!strcmp(key, "AUTOLOAD_LIST")) index = 7;
-    else if (!strcmp(key, "FAVORITES")) index = 8;
-    if (index == 7 && strcmp(key, "AUTOLOAD_LIST")) return 0; /* read-only/unknown fields */
+    for (; index < SETTING_COUNT; index++) if (!strcmp(key, setting_keys[index])) break;
+    if (!strcmp(key, "AUTOLOAD_LIST")) index = AUTOLOAD_LIST_INDEX;
+    else if (!strcmp(key, "FAVORITES")) index = FAVORITES_INDEX;
+    if (index == AUTOLOAD_LIST_INDEX && strcmp(key, "AUTOLOAD_LIST")) return 0; /* read-only/unknown fields */
     unsigned bit = 1u << index;
     if (update->seen & bit) return -1;
     update->seen |= bit;
@@ -192,13 +194,13 @@ static int update_member(const char *key, const char *start, const char *end, vo
         for (const char *p = start; p < end; p++) { if (*p < '0' || *p > '9') return -1; value = value * 10 + *p - '0'; }
         if (value > 3600) return -1;
         update->values[index] = (int)value;
-    } else if (index < 7) {
+    } else if (index < SETTING_COUNT) {
         if (size == 4 && !memcmp(start, "true", 4)) update->values[index] = 1;
         else if (size == 5 && !memcmp(start, "false", 5)) update->values[index] = 0;
         else return -1;
     } else {
-        char *csv = index == 7 ? update->autoload : update->favorites;
-        if (index == 8 && *start == '[') {
+        char *csv = index == AUTOLOAD_LIST_INDEX ? update->autoload : update->favorites;
+        if (index == FAVORITES_INDEX && *start == '[') {
             if (json_visit_array(start, end, favorite_item, update)) return -1;
         } else if (json_decode_string(start, end, csv, LIST_CAPACITY)) return -1;
         char lines[LIST_CAPACITY];
@@ -213,14 +215,14 @@ int config_handle_set_json(const char *json) {
     PldmgrConfig cfg;
     int result = read_config(&cfg);
     int *fields[] = {&cfg.autoload_enabled, &cfg.auto_browser_open, &cfg.autoload_delay,
-        &cfg.scan_usb_payloads, &cfg.auto_install_app, &cfg.multi_sources_enabled, &cfg.kill_disc_player};
-    for (size_t i = 0; i < 7; i++) if (update.seen & (1u << i)) *fields[i] = update.values[i];
+        &cfg.scan_usb_payloads, &cfg.auto_install_app, &cfg.multi_sources_enabled, &cfg.kill_disc_player, &cfg.show_dashboard_icons, &cfg.autoload_return_to_dashboard};
+    for (size_t i = 0; i < SETTING_COUNT; i++) if (update.seen & (1u << i)) *fields[i] = update.values[i];
     /* Validate the entire request before any write. Individual files publish
      * atomically; on I/O failure prior successful file publications remain.
      * Lists go first, enabled/settings last: never enable an unsaved new list. */
-    if (!result && (update.seen & (1u << 7))) result = save_csv(AUTOLOAD_CONFIG_PATH, update.autoload);
-    if (!result && (update.seen & (1u << 8))) result = save_csv(FAVORITES_CONFIG_PATH, update.favorites);
-    if (!result && (update.seen & 127)) result = write_config(&cfg);
+    if (!result && (update.seen & (1u << AUTOLOAD_LIST_INDEX))) result = save_csv(AUTOLOAD_CONFIG_PATH, update.autoload);
+    if (!result && (update.seen & (1u << FAVORITES_INDEX))) result = save_csv(FAVORITES_CONFIG_PATH, update.favorites);
+    if (!result && (update.seen & ((1u << SETTING_COUNT) - 1))) result = write_config(&cfg);
     pthread_mutex_unlock(&config_mutex);
     if (!result && (update.seen & 1) && !update.values[0]) pldmgr_autoload_abort();
     return result;

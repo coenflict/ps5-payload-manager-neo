@@ -1,14 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#0095ff"/>
+  <defs>
+    <!-- Payload Manager Neo: gradient of the original blue (#0095ff) -->
+    <linearGradient id="neo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3fd0ff"/>
+      <stop offset="0.5" stop-color="#0095ff"/>
+      <stop offset="1" stop-color="#0047d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#neo)"/>
   <g transform="translate(60, 64) scale(16)" fill="#ffffff">
     <!-- Sidebar Line -->
     <rect x="2" y="4" width="2.5" height="16" rx="1"/>
-    
+
     <!-- Payload Grid -->
     <rect x="7.5" y="7" width="4" height="4" rx="1"/>
     <rect x="13" y="7" width="4" height="4" rx="1"/>
     <rect x="18.5" y="7" width="4" height="4" rx="1"/>
-    
+
     <rect x="7.5" y="13" width="4" height="4" rx="1"/>
     <rect x="13" y="13" width="4" height="4" rx="1"/>
     <rect x="18.5" y="13" width="4" height="4" rx="1"/>

@@ -100,7 +100,9 @@ BASE = f'http://127.0.0.1:{server.server_address[1]}'
 CATALOG_URL = BASE + '/catalog.json'
 
 with tempfile.TemporaryDirectory(prefix='pldmgr-updater-') as temp:
-    build = Path(temp)
+    # Resolved: self-update ELFs are opened without following symlinks, and
+    # macOS temp directories live under the /var -> /private/var symlink.
+    build = Path(temp).resolve()
     data = build / 'data'
     payloads = data / 'payloads'
     payloads.mkdir(parents=True)

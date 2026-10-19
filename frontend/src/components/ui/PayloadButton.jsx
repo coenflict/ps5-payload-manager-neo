@@ -14,6 +14,7 @@ const PayloadButton = ({
   sourceName,
   version,
   icon,
+  showIcon = true,
   author,
   displayName,
   isFavorite,
@@ -65,8 +66,8 @@ const PayloadButton = ({
         className="w-full flex-1 pl-4 pr-3 py-2.5 text-left relative z-10 rounded-ps-xl focus:outline-none focus:ring-2 focus:ring-ps-blue"
       >
       <div className="flex items-center justify-between w-full z-10 my-auto">
-        <div className="flex items-center gap-3.5 min-w-0 pr-2">
-          <PayloadIcon icon={icon} name={iconName} className="w-11 h-11 text-xl shrink-0" />
+        <div className="flex flex-1 items-center gap-3.5 min-w-0 min-h-[44px] pr-2">
+          {showIcon && <PayloadIcon icon={icon} name={iconName} className="w-11 h-11 text-xl shrink-0" />}
           <div className="min-w-0 flex-1 flex flex-col justify-center">
             <PayloadName path={safePath} version={version} hideVersion={true} displayName={displayName} className="text-white text-lg md:text-xl leading-snug" stacked={false} />
             <div className="flex items-center gap-2 mt-0.5">

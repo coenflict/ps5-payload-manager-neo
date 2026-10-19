@@ -309,5 +309,12 @@
   "settings.updates_section": "Updates",
   "settings.updates_title": "Automatic Updates",
   "settings.updates_desc": "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.",
-  "autoload_overlay.updating": "Checking for payload updates..."
+  "autoload_overlay.updating": "Checking for payload updates...",
+  "settings.dashboard_icons_title": "ダッシュボードのペイロードアイコン",
+  "settings.dashboard_icons_desc": "ダッシュボードにペイロードアイコンを表示します。非表示にするとテキストの表示領域が広がります。",
+  "payload_detail.release_details": "リリース詳細",
+  "payload_detail.loading_release": "リリース詳細を読み込み中...",
+  "payload_detail.no_release_notes": "このバージョンのリリースノートはありません。",
+  "settings.autoload_return_title": "自動読み込み後に戻る",
+  "settings.autoload_return_desc": "すべてのペイロードの読み込みに成功したら、3秒後にダッシュボードに自動的に戻ります。"
 }

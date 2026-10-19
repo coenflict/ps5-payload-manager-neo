@@ -2,7 +2,7 @@ import '../polyfills.js';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import emojiMap from './emojiMap.js';
-import { replaceEmojiText } from './emojiSprites.js';
+import { replaceEmojiText } from './emoji.js';
 
 marked.use({
   gfm: true,
@@ -31,7 +31,7 @@ function escapedText(text) {
 }
 
 // The factory lets tests exercise unavailable/unsupported sanitizers in a real DOM.
-// Emoji are generated only from sanitized text nodes, using bundled CSS assets.
+// Emoji are generated only from sanitized text nodes, using pinned CDN artwork with a persistent cache.
 // A second sanitizer pass validates the final HTML, including the trusted spans.
 export function createMarkdownParser(purifier) {
   return function parseMarkdown(markdown) {

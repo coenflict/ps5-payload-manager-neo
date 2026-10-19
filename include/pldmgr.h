@@ -46,7 +46,7 @@
 
 /* Payload Manager Neo: a fork of PS5 Payload Manager by PLK. */
 #define PRODUCT_NAME "Payload Manager Neo"
-#define MENU_VERSION "0.7.0"
+#define MENU_VERSION "0.7.1"
 #define AUTOLOAD_CONFIG_PATH "/data/pldmgr/autoload.txt"
 #define FAVORITES_CONFIG_PATH "/data/pldmgr/favorites.txt"
 #define PLDMGR_CONFIG_PATH "/data/pldmgr/pldmgr_config.txt"

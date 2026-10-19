@@ -1078,12 +1078,14 @@ enum MHD_Result http_on_request(void *cls, struct MHD_Connection *conn,
                  "REPOSITORY_UPDATE\":%ld,"
                  "\"AUTO_BROWSER_OPEN\":%s,\"AUTOLOAD_DELAY\":%d,\"KILL_DISC_PLAYER_ON_STARTUP\":%s,"
                  "\"SCAN_USB_PAYLOADS\":%s,\"AUTO_INSTALL_APP\":%s,"
-                 "\"MULTI_SOURCES_ENABLED\":%s,\"FAVORITES\":\"%s\",\"FAVORITES_INITIALIZED\":%s}",
+                 "\"AUTOLOAD_RETURN_TO_DASHBOARD\":%s,\"SHOW_DASHBOARD_ICONS\":%s,\"MULTI_SOURCES_ENABLED\":%s,\"FAVORITES\":\"%s\",\"FAVORITES_INITIALIZED\":%s}",
                  cfg.autoload_enabled ? "true" : "false", list_escaped, cfg.last_repository_update,
                  cfg.auto_browser_open ? "true" : "false", cfg.autoload_delay,
                  cfg.kill_disc_player ? "true" : "false",
                  cfg.scan_usb_payloads ? "true" : "false",
                  cfg.auto_install_app ? "true" : "false",
+                 cfg.autoload_return_to_dashboard ? "true" : "false",
+                 cfg.show_dashboard_icons ? "true" : "false",
                  cfg.multi_sources_enabled ? "true" : "false",
                  fav_escaped, fav_exists ? "true" : "false");
         if (!resp_buf[0]) return send_serialization_error(conn, resp_buf);

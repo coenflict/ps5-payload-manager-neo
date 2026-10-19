@@ -415,11 +415,11 @@ function App() {
     addToast(t("app.toasts.sequence_aborted", "Sequence Aborted"), "error")
   }
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     await mutationFetch('/autoload_clear').catch(() => { })
     setAutoloadStatus(null)
-    window.location.reload()
-  }
+    navigate('dashboard')
+  }, [navigate])
 
   const loadPayload = async (slotOrPath, presentation = {}) => {
     if (!slotOrPath) return
@@ -701,7 +701,7 @@ function App() {
   const isAutoloadActive = autoloadStatus && Number.isFinite(autoloadStatus.remaining) && autoloadStatus.remaining >= 0;
 
   if (isAutoloadActive) {
-    return <AutoloadOverlay status={autoloadStatus} items={items} itemsLoading={loadingPayloads} onCancel={handleAbort} onFinish={handleFinish} isPS5={isPS5} />;
+    return <AutoloadOverlay autoReturn={config.AUTOLOAD_RETURN_TO_DASHBOARD === true} status={autoloadStatus} items={items} itemsLoading={loadingPayloads} onCancel={handleAbort} onFinish={handleFinish} isPS5={isPS5} />;
   }
 
   return (
@@ -796,7 +796,7 @@ function App() {
               <Menu className="w-6 h-6" />
             </button>
             <div className={cn("flex items-center space-x-3 transition-all duration-500", sidebarExpanded ? "opacity-100 scale-100" : "opacity-0 scale-90 absolute pointer-events-none")}>
-              <div className="p-2 bg-ps-blue rounded-xl">
+              <div className="p-2 neo-logo-tile rounded-xl">
                 <LogoIcon className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-white">PLDMGR</span>
@@ -953,6 +953,7 @@ function App() {
                   sourceName={sourceName}
                   version={version}
                   icon={icon}
+                  showIcon={config.SHOW_DASHBOARD_ICONS !== false}
                   author={author}
                   displayName={displayName}
                   isFavorite={isFavorite}

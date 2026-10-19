@@ -315,5 +315,12 @@
   "settings.updates_section": "Updates",
   "settings.updates_title": "Automatic Updates",
   "settings.updates_desc": "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.",
-  "autoload_overlay.updating": "Checking for payload updates..."
+  "autoload_overlay.updating": "Checking for payload updates...",
+  "settings.dashboard_icons_title": "Ikony payloadów na pulpicie",
+  "settings.dashboard_icons_desc": "Pokaż ikony payloadów na pulpicie. Ukrycie ich pozostawia więcej miejsca na tekst.",
+  "payload_detail.release_details": "Szczegóły wydania",
+  "payload_detail.loading_release": "Wczytywanie szczegółów wydania...",
+  "payload_detail.no_release_notes": "Brak informacji o zmianach dla tej wersji.",
+  "settings.autoload_return_title": "Powrót po autoloadzie",
+  "settings.autoload_return_desc": "Automatycznie wróć do pulpitu 3 sekundy po pomyślnym załadowaniu wszystkich payloadów."
 }

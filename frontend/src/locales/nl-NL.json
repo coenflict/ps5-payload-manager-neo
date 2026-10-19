@@ -311,5 +311,12 @@
   "settings.updates_section": "Bijwerken",
   "settings.updates_title": "Automatische updates",
   "settings.updates_desc": "Houd payloads en Payload Manager actueel met de releases van hun makers, inclusief verificatie en terugzetten.",
-  "autoload_overlay.updating": "Controleren op payload-updates..."
+  "autoload_overlay.updating": "Controleren op payload-updates...",
+  "settings.dashboard_icons_title": "Payloadpictogrammen op het dashboard",
+  "settings.dashboard_icons_desc": "Toon payloadpictogrammen op het dashboard. Verberg ze voor meer ruimte voor tekst.",
+  "payload_detail.release_details": "Releasedetails",
+  "payload_detail.loading_release": "Releasedetails laden...",
+  "payload_detail.no_release_notes": "Geen releaseopmerkingen beschikbaar voor deze versie.",
+  "settings.autoload_return_title": "Terugkeren na autoload",
+  "settings.autoload_return_desc": "Keer automatisch terug naar het dashboard 3 seconden nadat alle payloads met succes zijn geladen."
 }

@@ -319,5 +319,12 @@
   "settings.updates_section": "Updates",
   "settings.updates_title": "Automatic Updates",
   "settings.updates_desc": "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.",
-  "autoload_overlay.updating": "Checking for payload updates..."
+  "autoload_overlay.updating": "Checking for payload updates...",
+  "settings.dashboard_icons_title": "أيقونات الحمولات في لوحة التحكم",
+  "settings.dashboard_icons_desc": "عرض أيقونات الحمولات في لوحة التحكم. إخفاؤها يترك مساحة أكبر للنص.",
+  "payload_detail.release_details": "تفاصيل الإصدار",
+  "payload_detail.loading_release": "جارٍ تحميل تفاصيل الإصدار...",
+  "payload_detail.no_release_notes": "لا توجد ملاحظات إصدار متاحة لهذا الإصدار.",
+  "settings.autoload_return_title": "العودة بعد التحميل التلقائي",
+  "settings.autoload_return_desc": "العودة تلقائيًا إلى لوحة التحكم بعد 3 ثوانٍ من تحميل جميع الحمولات بنجاح."
 }
