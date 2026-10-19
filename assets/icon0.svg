@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Payload Manager Neo home screen icon (source of assets/icon0.png).
+       The original glyph, filled with a gradient of the original blue (#00AAE7). -->
+  <defs>
+    <radialGradient id="backdrop" cx="0.5" cy="0.5" r="0.62">
+      <stop offset="0" stop-color="#05182a"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="neo" gradientUnits="userSpaceOnUse" x1="235" y1="230" x2="819" y2="794">
+      <stop offset="0" stop-color="#6be3ff"/>
+      <stop offset="0.45" stop-color="#00aae7"/>
+      <stop offset="1" stop-color="#0047d6"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <g id="glyph" fill="url(#neo)">
+      <rect x="235" y="230" width="21" height="564" rx="4"/>
+      <rect x="333" y="357" width="128" height="128" rx="10"/>
+      <rect x="512" y="357" width="128" height="128" rx="10"/>
+      <rect x="691" y="357" width="128" height="128" rx="10"/>
+      <rect x="333" y="538" width="128" height="128" rx="10"/>
+      <rect x="512" y="538" width="128" height="128" rx="10"/>
+      <rect x="691" y="538" width="128" height="128" rx="10"/>
+    </g>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#backdrop)"/>
+  <use href="#glyph" filter="url(#glow)" opacity="0.55"/>
+  <use href="#glyph"/>
+</svg>

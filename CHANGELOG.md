@@ -10,6 +10,7 @@ Based on PS5 Payload Manager v0.6.3 by PLK.
 
 ### 🚀 Features & UX Improvements
 - **Upstream v0.6.2 and v0.6.3 merged**: optional Return After Autoload, a setting to hide dashboard payload icons, collapsible GitHub release details on payload pages, Traditional Chinese and Romanian translations, Twemoji loaded from a pinned CDN (smaller ELF), mobile upload control fixes and persistent payload icon caching. See the original project's entries below for details.
+- **New Neo logo**: the home screen icon, web app icons and sidebar logo use a gradient of the original blue; the README preview shows the Neo dashboard.
 
 ### 🛠️ Notes
 - Automatic Updates strings are shown in English in the new Romanian and Traditional Chinese translations until they are translated.

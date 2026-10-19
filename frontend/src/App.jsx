@@ -796,7 +796,7 @@ function App() {
               <Menu className="w-6 h-6" />
             </button>
             <div className={cn("flex items-center space-x-3 transition-all duration-500", sidebarExpanded ? "opacity-100 scale-100" : "opacity-0 scale-90 absolute pointer-events-none")}>
-              <div className="p-2 bg-ps-blue rounded-xl">
+              <div className="p-2 neo-logo-tile rounded-xl">
                 <LogoIcon className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-white">PLDMGR</span>

@@ -142,6 +142,12 @@ body {
   background: var(--color-ps-blue);
 }
 
+/* Neo logo tile: gradient of the original blue, matching favicon.svg */
+.neo-logo-tile {
+  background-color: var(--color-ps-blue);
+  background-image: linear-gradient(135deg, #3fd0ff 0%, #0095ff 50%, #0047d6 100%);
+}
+
 /* Glassmorphism & Cards */
 .glass-panel {
   background: var(--color-ps-surface);
