@@ -315,5 +315,12 @@
   "settings.updates_section": "Updates",
   "settings.updates_title": "Automatic Updates",
   "settings.updates_desc": "Keep payloads and Payload Manager current from their maintainers' releases, with verification and rollback.",
-  "autoload_overlay.updating": "Checking for payload updates..."
+  "autoload_overlay.updating": "Checking for payload updates...",
+  "settings.dashboard_icons_title": "Значки пейлоадів на головній",
+  "settings.dashboard_icons_desc": "Показувати значки пейлоадів на головній сторінці. Приховування залишає більше місця для тексту.",
+  "payload_detail.release_details": "Відомості про випуск",
+  "payload_detail.loading_release": "Завантаження відомостей про випуск...",
+  "payload_detail.no_release_notes": "Примітки до цієї версії недоступні.",
+  "settings.autoload_return_title": "Повернення після автозавантаження",
+  "settings.autoload_return_desc": "Автоматично повертатися на головну через 3 секунди після успішного завантаження всіх пейлоадів."
 }

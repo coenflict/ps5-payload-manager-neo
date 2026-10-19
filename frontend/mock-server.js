@@ -159,6 +159,7 @@ app.get('/autoload_status', (req, res) => {
 
 app.get('/get_config', (req, res) => {
   res.json({
+    AUTOLOAD_RETURN_TO_DASHBOARD: false,
     AUTOLOAD_ENABLED: true,
     AUTOLOAD_LIST: "goldhen_v2.4b17.elf,etaHEN_1.8.elf",
     LAST_REPOSITORY_UPDATE: lastRepositoryUpdate,
@@ -328,7 +329,7 @@ app.post('/usb_move_perform', (req, res) => res.json({ ok: true, message: 'Mock 
 // Automatic updates: in-memory fixture mirroring the native /updates_* contract.
 const updates = {
   enabled: true, budget: 20, self_update: true, running: false, last_run: Math.floor(Date.now() / 1000), network: 'online',
-  channel: { repo: 'coenflict/ps5-payload-manager-neo', official: false, running: '0.7.0', pending: '', latest: 'v0.7.0', state: 'current', message: 'Up to date' },
+  channel: { repo: 'coenflict/ps5-payload-manager-neo', official: false, running: '0.7.1', pending: '', latest: 'v0.7.1', state: 'current', message: 'Up to date' },
   items: [
     { slot: 'repo/kstuff-lite@46730479', name: 'kstuff-lite', kind: 'repo', installed: 'v1.11', latest: 'v2.0', source: 'upstream',
       upstream: 'EchoStretch/kstuff-lite', pattern: 'kstuff.elf', state: 'approval', message: 'Major version change to v2.0; approve to install',

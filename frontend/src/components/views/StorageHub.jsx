@@ -391,14 +391,14 @@ const StorageHub = ({
         </p>
       </Modal>
 
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight min-w-0">
           {t("storage_hub.title_1", "Get")} <span className="text-ps-blue">{t("storage_hub.title_2", "Payloads")}</span>
         </h2>
 
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto min-w-0 max-w-full">
           {isSearchOpen ? (
-            <div className="flex items-center bg-black/40 border border-white/10 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 focus-within:border-ps-blue/50 transition-all w-40 sm:w-64 md:w-80">
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 focus-within:border-ps-blue/50 transition-all w-full sm:w-64 md:w-80 max-w-full">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-ps-blue mr-2 shrink-0" />
               <input
                 ref={searchInputRef}

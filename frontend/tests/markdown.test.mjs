@@ -37,20 +37,20 @@ test('polyfills provide standard Safari 11/12 runtime APIs', () => {
   assert.equal('foo bar foo'.replaceAll('foo', 'baz'), 'baz bar baz');
 });
 
-test('bundled sprite matcher covers every artwork and shortcode without splitting combinations', async () => {
-  const { default: identifiers } = await import('../src/assets/emoji/sprites.js');
+test('Twemoji matcher covers every artwork and shortcode without splitting combinations', async () => {
+  const { default: identifiers } = await import('../src/assets/emoji/identifiers.js');
   const { default: emojiMap } = await import('../src/utils/emojiMap.js');
-  const { emojiSegments } = await import('../src/utils/emojiSprites.js');
+  const { emojiSegments } = await import('../src/utils/emoji.js');
   assert.equal(identifiers.length, 3838);
   for (const identifier of identifiers) {
     const text = identifier.split('-').map(hex => String.fromCodePoint(parseInt(hex, 16))).join('');
     const segments = emojiSegments(text);
     assert.equal(segments.length, 1, identifier);
-    assert.equal(typeof segments[0].sprite, 'number', identifier);
+    assert.equal(segments[0].identifier, identifier, identifier);
     assert.equal(segments[0].text, text, identifier);
   }
   for (const [name, text] of Object.entries(emojiMap)) {
-    assert.ok(emojiSegments(text).every(segment => typeof segment.sprite === 'number'), name);
+    assert.ok(emojiSegments(text).every(segment => typeof segment.identifier === 'string'), name);
   }
   for (const text of ['👩🏽‍💻', '🇵🇱', '1️⃣', '❤️', '🏴\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}']) {
     assert.equal(emojiSegments(text).length, 1, text);
@@ -59,16 +59,7 @@ test('bundled sprite matcher covers every artwork and shortcode without splittin
   assert.deepEqual(emojiSegments('plain 123 # text :unknown:'), [{text: 'plain 123 # text :unknown:'}]);
 });
 
-test('emoji atlas is bounded and generated CSS can only load the bundled PNG', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const png = await readFile(new URL('../src/assets/emoji/sprites.png', import.meta.url));
-  assert.equal(png.readUInt32BE(16), 1280);
-  assert.equal(png.readUInt32BE(20), 1200);
-  assert.ok(png.length < 600000);
-  const css = await readFile(new URL('../src/assets/emoji/sprites.css', import.meta.url), 'utf8');
-  assert.equal([...css.matchAll(/url\(/g)].length, 1);
-  assert.ok(css.includes('url("./sprites.png")'));
-  assert.ok(!css.includes('https:') && !css.includes('http:'));
-  assert.equal([...css.matchAll(/\.emoji-\d+ /g)].length, 0);
-  assert.ok(css.length < 1000, 'position rules must be generated lazily, not bundled');
+test('emoji artwork URLs are pinned to an immutable public CDN version', async () => {
+  const { EMOJI_BASE_URL } = await import('../src/utils/emoji.js');
+  assert.equal(EMOJI_BASE_URL, 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@v15.1.0/assets/72x72/');
 });

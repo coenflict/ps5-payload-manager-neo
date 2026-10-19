@@ -415,11 +415,11 @@ function App() {
     addToast(t("app.toasts.sequence_aborted", "Sequence Aborted"), "error")
   }
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     await mutationFetch('/autoload_clear').catch(() => { })
     setAutoloadStatus(null)
-    window.location.reload()
-  }
+    navigate('dashboard')
+  }, [navigate])
 
   const loadPayload = async (slotOrPath, presentation = {}) => {
     if (!slotOrPath) return
@@ -701,7 +701,7 @@ function App() {
   const isAutoloadActive = autoloadStatus && Number.isFinite(autoloadStatus.remaining) && autoloadStatus.remaining >= 0;
 
   if (isAutoloadActive) {
-    return <AutoloadOverlay status={autoloadStatus} items={items} itemsLoading={loadingPayloads} onCancel={handleAbort} onFinish={handleFinish} isPS5={isPS5} />;
+    return <AutoloadOverlay autoReturn={config.AUTOLOAD_RETURN_TO_DASHBOARD === true} status={autoloadStatus} items={items} itemsLoading={loadingPayloads} onCancel={handleAbort} onFinish={handleFinish} isPS5={isPS5} />;
   }
 
   return (
@@ -953,6 +953,7 @@ function App() {
                   sourceName={sourceName}
                   version={version}
                   icon={icon}
+                  showIcon={config.SHOW_DASHBOARD_ICONS !== false}
                   author={author}
                   displayName={displayName}
                   isFavorite={isFavorite}
